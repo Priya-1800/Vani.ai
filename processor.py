@@ -2,7 +2,7 @@ import os
 import json
 import asyncio
 import websockets
-from .connection import manager
+from connection import manager
 from fastapi import WebSocketDisconnect
 
 class AudioPipeline:
