@@ -1,4 +1,5 @@
 import json
+import os
 import google.generativeai as genai
 from fastapi import FastAPI
 from pydantic import BaseModel
