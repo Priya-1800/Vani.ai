@@ -12,8 +12,11 @@ from app.processor import AudioPipeline
 load_dotenv()
 app = FastAPI()
 
-# Configure your Gemini API Key
-genai.configure(api_key="AIzaSyAwJiQUvrv3ri6TOV7XBGtqYfio_kOAVa8")
+# Fetch the API key safely from the environment
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 class TranscriptData(BaseModel):
     full_text: str
