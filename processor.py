@@ -68,6 +68,10 @@ class AudioPipeline:
                                 if results:
                                     partial_text = " ".join([r["alternatives"][0]["content"] for r in results])
                                     payload = {"type": "partial", "original": partial_text}
+                                    
+                                    # Send to Presenter Screen (NEW LINE)
+                                    await client_ws.send_text(json.dumps(payload))
+                                    
                                     if self.manager:
                                         await self.manager.broadcast(self.room, json.dumps(payload))
 
@@ -86,6 +90,10 @@ class AudioPipeline:
                                         "speaker": speaker,
                                         "original": final_text
                                     }
+                                    
+                                    # Send to Presenter Screen (NEW LINE)
+                                    await client_ws.send_text(json.dumps(payload))
+                                    
                                     if self.manager:
                                         await self.manager.broadcast(self.room, json.dumps(payload))
                                         
