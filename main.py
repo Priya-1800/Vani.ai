@@ -6,8 +6,8 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse # 👈 NEW: Added this import!
 from dotenv import load_dotenv
-from app.connection import manager
-from app.processor import AudioPipeline
+from connection import manager
+from processor import AudioPipeline
 
 load_dotenv()
 app = FastAPI()
