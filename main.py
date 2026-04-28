@@ -25,7 +25,7 @@ class TranscriptData(BaseModel):
 @app.post("/generate_summary")
 async def generate_summary(data: TranscriptData):
     # Initialize the Gemini model
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-2.5-flash')
     
     # Create the prompt for the AI
     prompt = f"""
