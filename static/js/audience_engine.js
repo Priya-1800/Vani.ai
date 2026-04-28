@@ -48,7 +48,7 @@ function joinStream() {
 
     const room = document.getElementById('room-link').value || "default";
     
-    ws = new WebSocket(`ws://127.0.0.1:8000/ws/audience/${room}`);
+    const ws = new WebSocket(`wss://https://vani-ai-rq34.onrender.com/ws/audience/${room_id}`);
 
     ws.onopen = () => {
         statusBadge.innerText = "LIVE STREAM CONNECTED";
