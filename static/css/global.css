@@ -1,0 +1,51 @@
+/* --- GLOBAL VARIABLES (Light Theme) --- */
+:root {
+    --bg-white: #ffffff;
+    --text-main: #0f172a;
+    /* Deep slate black */
+    --text-muted: #64748b;
+    /* Elegant gray */
+    --accent-blue: #2563eb;
+    /* Professional tech blue */
+    --accent-hover: #1d4ed8;
+    --border-light: rgba(15, 23, 42, 0.05);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: Helvetica, sans-serif;
+    background-color: var(--bg-white);
+    color: var(--text-main);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+h1,
+h2,
+h3 {
+    font-weight: 500;
+    letter-spacing: -0.02em;
+}
+
+p {
+    color: var(--text-muted);
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Fix for the button inside the anchor tag */
+.hero-content a {
+    display: inline-block;
+}

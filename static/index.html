@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vani.ai</title>
+    <link rel="stylesheet" href="/static/css/global.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/effects.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="logo">Vani.ai</div>
+        
+        <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="#features-section">Features</a>
+            <a href="#about-section">About Us</a>
+            <a href="#contact-section">contact Us</a>
+           <a href="#team-section">Our Team</a>
+        </nav>
+
+        <div class="nav-actions">
+            <a href="login.html" class="login-btn">Log in</a>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="glow-bg"></div>
+        <div class="swirl-overlay"></div>
+
+        <div class="hero-content">
+            <div class="badge">Next-Gen Multilingual Streaming & Edge AI</div>
+            <h1>Zero-Downtime Live <br>Transcription & Translation</h1>
+            <p>Break down language barriers instantly. Vani.ai uses low-latency WebSockets and a revolutionary Cloud-to-Edge fallback to ensure deaf and non-native attendees never lose accessibility, even if the Wi-Fi drops.</p>
+            
+            <div class="hero-buttons">
+                <a href="presenter.html" class="cta-btn">Start Transcribing Now &rarr;</a>
+                <a href="#about-section" class="btn-secondary">Know More</a>
+            </div>
+        </div>
+
+        <div class="logo-bar">
+            <span>FastAPI</span>
+            <span>WebSockets</span>
+            <span>Speechmatics ASR</span>
+            <span>Transformers.js</span>
+            <span>Hugging Face Whisper</span>
+        </div>
+    </section>
+<section id="features-section" class="features reveal-on-scroll">
+        
+        <div class="features-top-area">
+            <div class="features-header-row">
+                <div class="features-slogan">
+                    <h2>Intelligence in<br>Every Interaction.</h2>
+                </div>
+                <div class="features-para">
+                    <p>Unlock profound insights from your voice data. From instant transcription to context-aware summarization, Vani.ai provides the edge-driven tools you need to streamline communication.</p>
+                </div>
+            </div>
+            
+        </div>
+
+        <div class="features-card-grid">
+            <div class="feature-detail-card">
+                <h3>Ultra-Low Latency</h3>
+                <p>Streaming 16kHz raw PCM audio via bi-directional WebSockets for sub-second real-time captions.</p>
+            </div>
+            <div class="feature-detail-card">
+                <h3>50+ Global Languages</h3>
+                <p>Instantaneous, distributed client-side translation routing for diverse audiences.</p>
+            </div>
+            <div class="feature-detail-card">
+                <h3>Zero-Downtime Fallback</h3>
+                <p>Automatically detects Wi-Fi drops and shifts processing from the Cloud to the local Edge instantly.</p>
+            </div>
+            <div class="feature-detail-card">
+                <h3>Speaker Diarization</h3>
+                <p>Cloud-engine accurately identifies and labels multiple speakers dynamically in the audio stream.</p>
+            </div>
+            <div class="feature-detail-card">
+                <h3>Custom Vocabulary</h3>
+                <p>Inject dynamic industry glossaries into the live stream to ensure perfect technical accuracy.</p>
+            </div>
+            <div class="feature-detail-card">
+                <h3>100% Offline Privacy</h3>
+                <p>In offline mode, our WebAssembly Whisper model processes audio entirely on the local CPU. Zero data leaves the device.</p>
+            </div>
+            <div class="feature-detail-card">
+                <h3>Graceful Degradation</h3>
+                <p>Ensures the deaf and hard-of-hearing never lose core English accessibility during total network failures.</p>
+            </div>
+            <div class="feature-detail-card">
+                <h3>Scalable Audience UI</h3>
+                <p>Live JSON broadcasting allows thousands of viewers to connect to a room without overwhelming the server.</p>
+            </div>
+        </div>
+</section>
+
+
+
+<section id="support-section" class="vp-live-preview">
+    <div class="vp-terminal-container">
+        <div class="vp-window-top">
+            <div class="vp-controls"><span></span><span></span><span></span></div>
+            <div class="vp-status-bar"><span class="vp-indicator"></span> Recording...</div>
+        </div>
+        <div class="vp-window-content">
+            <p class="vp-text-primary">Vani AI: [Detecting Marathi Accent]... "नमस्कार, आज आपण रिअल-टाइम ट्रान्सक्रिप्शनबद्दल बोलत आहोत."</p>
+            <p class="vp-text-secondary">English: "Hello, today we are talking about real-time transcription."</p>
+        </div>
+    </div>
+</section>
+
+<section class="wv-why-section">
+    <div class="wv-container">
+        <div class="wv-intro">
+            <span class="wv-tag">THE DIFFERENCE</span>
+            <h2>Why choose Vani.ai?</h2>
+        </div>
+
+        <div class="wv-card-grid">
+            <div class="wv-feature-card">
+                <div class="wv-card-num">01</div>
+                <h3>Edge-Driven Speed</h3>
+                <p>Unlike cloud tools that lag, Vani processes audio locally, delivering results in under 300ms.</p>
+            </div>
+
+            <div class="wv-feature-card">
+                <div class="wv-card-num">02</div>
+                <h3>Dialect Intelligence</h3>
+                <p>Built for the nuances of Indian accents and regional languages, ensuring 98% accuracy.</p>
+            </div>
+
+            <div class="wv-feature-card">
+                <div class="wv-card-num">03</div>
+                <h3>Privacy by Design</h3>
+                <p>Your voice never leaves your device. No cloud storage—just pure offline security.</p>
+            </div>
+        </div>
+    </div>
+</section>
+<section id="contact-section" class="cu-contact-section">
+    <div class="cu-container">
+        <div class="cu-grid">
+            
+            <div class="cu-info-side">
+                <span class="cu-tag">GET IN TOUCH</span>
+                <h2>Let's talk about your <br>voice AI needs.</h2>
+                <p>Have a specific use case? Our team is ready to help you integrate Vani.ai into your workflow.</p>
+                
+                <div class="cu-details">
+                    <div class="cu-item">
+                        <div class="cu-icon">📍</div>
+                        <div>
+                            <strong>Institute</strong>
+                            <p>Pune, Maharashtra, India</p>
+                        </div>
+                    </div>
+                    <div class="cu-item">
+                        <div class="cu-icon">📧</div>
+                        <div>
+                            <strong>Email</strong>
+                            <p>hello@vani.ai</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cu-form-side">
+                <form class="cu-form">
+                    <div class="cu-form-group">
+                        <label>Full Name</label>
+                        <input type="text" placeholder="John Doe" required>
+                    </div>
+                    <div class="cu-form-group">
+                        <label>Work Email</label>
+                        <input type="email" placeholder="john@company.com" required>
+                    </div>
+                    <div class="cu-form-group">
+                        <label>Message</label>
+                        <textarea rows="4" placeholder="Tell us about your project..." required></textarea>
+                    </div>
+                    <button type="submit" class="cu-submit-btn">Send Message</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</section>
+<section id="about-section" class="au-about-section">
+    <div class="au-container">
+        <div class="au-split-grid">
+            
+            <div class="au-image-side">
+                <div class="au-image-wrapper">
+                    <div class="au-image-placeholder">
+                        <span>Linguistic<br>Engine<br>Visualization</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="au-content-side">
+                <span class="au-tag">MISSION-DRIVEN AI</span>
+                
+                <h2 class="au-slogan">Bridging the Gap Between Speech and Action.</h2>
+                
+                <p class="au-para">Vani AI isn't just a transcription tool; it's a real-time linguistic engine. We process complex Indian dialects at the edge, ensuring that language is no longer a barrier to digital accessibility or enterprise productivity.</p>
+                
+                <div class="au-btn-group">
+                    <a href="presenter.html" class="cta-btn au-primary-btn">Start Transcribing</a>
+                    <a href="#features" class="au-secondary-btn">Know More →</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+<section  id="team-section"  class="team-section">
+    <div class="container">
+        <div class="team-header">
+            <span class="subtitle">Our Team</span>
+            <h2>Meet Our Creative Collective.</h2>
+            <p>The minds behind the "Virtual Brain" and the future of multilingual communication.</p>
+        </div>
+
+        <div class="team-grid">
+            <div class="team-card">
+                <div class="member-image">
+                    <img src="/static/assets/Priya_Thakur.jpeg" alt="Team Member">
+                    <div class="social-overlay">
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                <div class="member-info">
+                    <h3>Priya Thakur</h3>
+                    <p>AI/ML Engineer</p>
+                </div>
+            </div>
+
+            <div class="team-card">
+                <div class="member-image">
+                    <img src="/static/assets/Vaishali_Nikalje.png" alt="Team Member">
+                    <div class="social-overlay">
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                <div class="member-info">
+                    <h3>Vaishali Nikalje</h3>
+                    <p>Frontend UI/UX</p>
+                </div>
+            </div>
+
+            <div class="team-card">
+                <div class="member-image">
+                    <img src="/static/assets/Tanmayee_Panat.png" alt="Team Member">
+                    <div class="social-overlay">
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                <div class="member-info">
+                    <h3>Tanmayee Panat</h3>
+                    <p>Technical Documentation and Researcher</p>
+                </div>
+            </div>
+
+            <div class="team-card">
+                <div class="member-image">
+                    <img src="/static/assets/Yash_Pawar.png" alt="Team Member">
+                    <div class="social-overlay">
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                <div class="member-info">
+                    <h3>Yash Pawar</h3>
+                    <p>Hardware and System Engineer</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<footer class="ft-footer-white">
+    <div class="ft-container">
+        <div class="ft-top">
+            <div class="ft-brand">
+                <a href="#" class="ft-logo-dark">Vani<span>.ai</span></a>
+                <p>The next generation of edge-driven linguistic intelligence. Processing the world's voices, locally.</p>
+                <div class="ft-social-links">
+                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+
+            <div class="ft-nav">
+                <div class="ft-nav-group">
+                    <h4>Platform</h4>
+                    <ul>
+                        <li><a href="#features-section">Features</a></li>
+                        <li><a href="presenter.html">Live Demo</a></li>
+                        <li><a href="#">API Docs</a></li>
+                    </ul>
+                </div>
+                <div class="ft-nav-group">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#about-section">About Us</a></li>
+                        <li><a href="#team-section">Our Team</a></li>
+                        <li><a href="#contact-section">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="ft-bottom">
+            <p>&copy; 2026 Vani AI. All rights reserved.</p>
+            <div class="ft-legal">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+    <script src="/static/js/animations.js"></script>
+    <script src="/static/js/navigation.js"></script>
+</body>
+</html>
