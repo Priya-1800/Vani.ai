@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vani AI | Presenter Dashboard</title>
+    <link rel="stylesheet" href="/static/css/global.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/effects.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+<body class="pres-body">
+
+    <div class="pres-wrapper">
+        <aside class="pres-sidebar">
+            <div class="pres-logo">Vani<span>.ai</span></div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" onclick="location.reload()"><i class="fas fa-plus"></i> New Transcription</a>
+                <a href="#" class="nav-item"><i class="fas fa-save"></i> Save</a>
+                <a href="#" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+                <a href="#" class="nav-item"><i class="fas fa-user"></i> Profile</a>
+            </nav>
+        </aside>
+
+        <main class="pres-main">
+            
+            <div class="transcription-window">
+                
+                <div class="window-controls">
+                    <div class="control-group">
+                        <select id="mic-select" class="lang-dropdown" style="max-width: 150px;" title="Select Microphone">
+                            <option value="">Loading mics...</option>
+                        </select>
+                        <select name="language" id="language-select">
+                            <option value="ar">Arabic</option>
+                            <option value="ba">Bashkir</option>
+                            <option value="eu">Basque</option>
+                            <option value="be">Belarusian</option>
+                            <option value="bn">Bengali</option>
+                            <option value="bg">Bulgarian</option>
+                            <option value="yue">Cantonese</option>
+                            <option value="ca">Catalan</option>
+                            <option value="hr">Croatian</option>
+                            <option value="cs">Czech</option>
+                            <option value="da">Danish</option>
+                            <option value="nl">Dutch</option>
+                            <option value="en">English</option>
+                            <option value="eo">Esperanto</option>
+                            <option value="et">Estonian</option>
+                            <option value="fi">Finnish</option>
+                            <option value="fr">French</option>
+                            <option value="gl">Galician</option>
+                            <option value="de">German</option>
+                            <option value="el">Greek</option>
+                            <option value="he">Hebrew</option>
+                            <option value="hi">Hindi</option>
+                            <option value="hu">Hungarian</option>
+                            <option value="id">Indonesian</option>
+                            <option value="ia">Interlingua</option>
+                            <option value="ga">Irish</option>
+                            <option value="it">Italian</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                            <option value="lv">Latvian</option>
+                            <option value="lt">Lithuanian</option>
+                            <option value="ms">Malay</option>
+                            <option value="mt">Maltese</option>
+                            <option value="cmn">Mandarin</option>
+                            <option value="mr">Marathi</option>
+                            <option value="mn">Mongolian</option>
+                            <option value="no">Norwegian</option>
+                            <option value="fa">Persian</option>
+                            <option value="pl">Polish</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="ro">Romanian</option>
+                            <option value="ru">Russian</option>
+                            <option value="sk">Slovakian</option>
+                            <option value="sl">Slovenian</option>
+                            <option value="es">Spanish</option>
+                            <option value="sw">Swahili</option>
+                            <option value="sv">Swedish</option>
+                            <option value="tl">Tagalog</option>
+                            <option value="ta">Tamil</option>
+                            <option value="th">Thai</option>
+                            <option value="tr">Turkish</option>
+                            <option value="uk">Ukrainian</option>
+                            <option value="ur">Urdu</option>
+                            <option value="ug">Uyghur</option>
+                            <option value="vi">Vietnamese</option>
+                            <option value="cy">Welsh</option>
+                        </select>
+                        
+                        <button id="startBtn" class="btn-start" onclick="startEngine()"><i class="fas fa-play"></i> Start</button>
+                        <button id="stopBtn" class="btn-stop" onclick="stopEngine()" disabled><i class="fas fa-stop"></i> Stop</button>
+                    </div>
+                    
+                    <div id="status" class="status-badge">Ready</div>
+                </div>
+
+                <div id="transcript-display" class="transcript-canvas">
+                    <div class="hint-text" id="hint">Select your language, choose your mic, and click Start...</div>
+                    <span id="final-span"></span>
+                    <span id="partial-span" style="color: #888; font-style: italic;"></span>
+                </div>
+            </div>
+
+            <footer class="bottom-actions">
+                <div class="action-buttons">
+                    <button class="btn-outline" onclick="alert('Transcript Saved!')"><i class="fas fa-bookmark"></i> Save</button>
+                    <button class="btn-outline" onclick="exportTranscript('Vani_Master_Transcript.txt')"><i class="fas fa-download"></i> Export</button>
+                </div>
+            </footer>
+
+        </main>
+    </div>
+
+    <script type="module" src="/static/js/presenter_engine.js"></script>
+</body>
+</html>
