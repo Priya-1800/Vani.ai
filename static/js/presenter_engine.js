@@ -88,8 +88,8 @@ async function startEngine() {
     const langDropdown = document.getElementById('source-lang');
     const sourceLang = langDropdown ? langDropdown.value : 'en';
 
-    // Connect to your Python server!
-    ws = new WebSocket("ws://127.0.0.1:8000/ws/audio");
+    // 🌐 CLOUD UPDATE: Connect to your live Render WebSocket
+    ws = new WebSocket("wss://https://vani-ai-rq34.onrender.com/ws/audio");
 
     ws.onopen = () => {
         if(status) {
@@ -243,8 +243,8 @@ window.generateAiSummary = async function() {
     summarizeBtn.style.opacity = '0.5';
 
     try {
-        // Call your FastAPI backend
-        const response = await fetch('/generate_summary', {
+        // 🌐 CLOUD UPDATE: Call your deployed FastAPI backend
+        const response = await fetch('https://vani-ai-rq34.onrender.com', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
