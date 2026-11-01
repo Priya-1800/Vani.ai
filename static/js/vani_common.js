@@ -43,11 +43,18 @@
             all.unshift({ ...session, savedAt: new Date().toISOString() });
             return write(KEYS.sessions, all.slice(0, MAX_SESSIONS));
         },
+        // Host transcripts auto-saved by older versions; Saved shows manual saves only.
+        removeAutoSaved() {
+            const all = read(KEYS.sessions, []);
+            const kept = all.filter(s => !(s.role === 'host' && s.autoSaved));
+            if (kept.length !== all.length) write(KEYS.sessions, kept);
+        },
         deleteSession(id) {
             write(KEYS.sessions, read(KEYS.sessions, []).filter(s => s.id !== id));
         },
         getSettings() {
-            return { glossary: [], defaultLanguage: '', autoSave: true, ...read(KEYS.settings, {}) };
+            const { autoSave, ...settings } = read(KEYS.settings, {});  // autoSave was removed
+            return { glossary: [], defaultLanguage: '', ...settings };
         },
         saveSettings(settings) {
             return write(KEYS.settings, settings);
@@ -190,12 +197,13 @@
 
         function render() {
             wrap.innerHTML = '';
-            const sessions = VaniStore.listSessions(role);
+            // The host's Saved list shows only transcripts saved with the Save button.
+            const sessions = VaniStore.listSessions(role).filter(s => !(role === 'host' && s.autoSaved));
             if (!sessions.length) {
                 const p = document.createElement('p');
                 p.className = 'vani-muted';
                 p.textContent = role === 'host'
-                    ? 'No saved transcripts yet. Press the Save button under the transcript (or keep auto-save on in Settings).'
+                    ? 'No saved transcripts yet. Press the Save button under the transcript to keep one here.'
                     : 'No saved sessions yet. Sessions are saved here automatically when you leave or the host ends the stream.';
                 wrap.appendChild(p);
                 return;
@@ -210,7 +218,7 @@
                 title.textContent = s.room ? `Room ${s.room}` : 'Session';
                 const meta = document.createElement('span');
                 const words = (s.text || '').split(/\s+/).filter(Boolean).length;
-                meta.textContent = `${new Date(s.startedAt || s.savedAt).toLocaleString()} · ${words} words${s.autoSaved ? ' · auto-saved' : ''}`;
+                meta.textContent = `${new Date(s.startedAt || s.savedAt).toLocaleString()} · ${words} words`;
                 const preview = document.createElement('p');
                 preview.textContent = (s.text || '').slice(0, 140) + ((s.text || '').length > 140 ? '…' : '');
                 info.append(title, meta, preview);

@@ -54,7 +54,7 @@ Open `http://localhost:8000/presenter.html` to present and `http://localhost:800
 
 ## Saved data
 
-Save, History, Settings (glossary, default language, auto-save) and Profile are stored in the browser's localStorage. There are no accounts, so they stay on the device where they were created.
+Saved transcripts (only those saved with the Save button), Settings (glossary, default language) and Profile are stored in the browser's localStorage. Stopping or closing the page with an unsaved transcript shows a reminder instead of saving silently. There are no accounts, so they stay on the device where they were created.
 
 ## Deploying to Vercel
 
