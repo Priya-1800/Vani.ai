@@ -48,7 +48,7 @@ Open `http://localhost:8000/presenter.html` to present and `http://localhost:800
 | `SPEECHMATICS_API_KEY` | Speechmatics real-time API token |
 | `SPEECHMATICS_URL` | Speechmatics real-time WebSocket URL for your region |
 | `GEMINI_API_KEY` | Gemini API key for summaries and Vani Bot. Without it (or if Gemini fails) both fall back to a simple answer built from the transcript |
-| `GEMINI_MODEL` | Optional. Gemini model name, default `gemini-2.5-flash` |
+| `GEMINI_MODEL` | Optional. Pin a Gemini model name. By default the newest stable `gemini-X.Y-flash` model available to the key is used, so retired model names don't break summaries |
 | `REDIS_URL` | Redis connection URL. Required on Vercel so the presenter and viewers share a room across function instances. Optional locally. |
 | `APP_API_KEY` | Optional. If set, `/generate_summary` requires an `X-API-Key` header |
 
