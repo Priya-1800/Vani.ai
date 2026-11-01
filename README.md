@@ -2,7 +2,7 @@
 
 Real-time multilingual captioning for talks and meetings. A presenter speaks, the audience sees live text in their own room, and Gemini can turn the transcript into a summary with action items.
 
-Built as a final-year capstone (team of four) and presented at ImCReTE 2026 in the paper *“Vani.ai Next Generation Multilingual Streaming Using Websockets and Edge Fallback”*. This repository is the software platform; it is under active development (see the roadmap).
+Built by Priya Thakur (AI/ML, backend, systems and research) and Vaishali Nikalje (frontend and UI/UX) as a final-year capstone, and presented at ImCReTE 2026 in the paper *“Vani.ai Next Generation Multilingual Streaming Using Websockets and Edge Fallback”*. This repository is the software platform; it is under active development (see the roadmap).
 
 ## What it does today
 

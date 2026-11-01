@@ -267,3 +267,28 @@ document.querySelector('.ft-logo-dark').addEventListener('click', (e) => {
     e.preventDefault();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 });
+
+/* ========================================= */
+/* --- MOBILE MENU (☰) --- */
+/* ========================================= */
+(function () {
+    const navbar = document.querySelector('.navbar');
+    const toggle = document.querySelector('.nav-toggle');
+    if (!navbar || !toggle) return;
+
+    function setOpen(open) {
+        navbar.classList.toggle('is-open', open);
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        // Swap the icon class rather than replacing the <i>: a replaced (detached)
+        // click target would make the outside-click check below close the menu again.
+        const icon = toggle.querySelector('i');
+        if (icon) icon.className = open ? 'fas fa-times' : 'fas fa-bars';
+    }
+
+    toggle.addEventListener('click', () => setOpen(!navbar.classList.contains('is-open')));
+    // Close after choosing a link, on Escape, or when tapping outside the header.
+    document.querySelectorAll('.nav-links a').forEach(a => a.addEventListener('click', () => setOpen(false)));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
+    document.addEventListener('click', e => { if (!navbar.contains(e.target)) setOpen(false); });
+})();
