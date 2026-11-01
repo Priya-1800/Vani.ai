@@ -1,15 +1,108 @@
-/* Phone and small-tablet layout for the app pages (host, client, offline).
-   The desktop layout (side rail + fixed-height window) needs ~900px; below
-   768px the side rail becomes a top bar and toolbars wrap. */
+/* Responsive layout for the app pages (host, client, offline).
+   - All sizes: size to the *visible* screen (dvh) and keep reactions/bot pinned to it.
+   - 769-1100px (tablets): host side rail shrinks to icons, toolbars wrap.
+   - <=768px (phones): side rail becomes a top bar. */
+
+/* ---------- All sizes ---------- */
+body.pres-body,
+body.aud-body,
+.pres-wrapper,
+.aud-wrapper {
+    height: 100vh;
+    height: 100dvh; /* mobile browsers: 100vh is taller than the visible area (address/nav bars) */
+}
+
+/* Pinned to the screen, not to the bottom of a box that may extend below it. */
+.reaction-bar {
+    position: fixed;
+    right: 112px;
+    bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+}
+
+.fab-bot {
+    position: fixed;
+    right: 32px;
+    bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Keep the last caption clear of the reaction bar. */
+#live-transcript {
+    padding-bottom: 110px;
+}
+
+/* ---------- Tablets ---------- */
+@media (min-width: 769px) and (max-width: 1100px) {
+    .pres-sidebar {
+        width: 84px;
+        padding: 26px 10px;
+        align-items: center;
+        gap: 28px;
+        flex-shrink: 0;
+    }
+
+    .pres-logo {
+        font-size: 1.15rem;
+        padding-left: 0;
+    }
+
+    .pres-profile-name,
+    .sidebar-nav .nav-label {
+        display: none;
+    }
+
+    .sidebar-nav {
+        align-items: center;
+    }
+
+    .nav-item {
+        justify-content: center;
+        gap: 0;
+        width: 52px;
+        height: 48px;
+        padding: 0;
+        font-size: 1.15rem;
+    }
+
+    .pres-main {
+        padding: 24px;
+        min-width: 0;
+    }
+
+    .window-role-title {
+        padding: 12px 130px 12px 20px;
+        text-align: left;
+    }
+
+    .window-controls {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .control-group {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .action-buttons {
+        flex-wrap: wrap;
+    }
+
+    .aud-window {
+        margin: 0 24px 24px;
+    }
+
+    .aud-header {
+        padding: 20px 24px;
+    }
+}
 
 @media (max-width: 768px) {
 
     /* ---------- Shared shell (host + offline pages) ---------- */
+    /* The app pages' <body> doesn't scroll, so the shell stays screen-height and
+       the main pane / transcript scroll inside it. */
     .pres-wrapper {
         flex-direction: column;
-        height: auto;
-        min-height: 100vh;
-        min-height: 100dvh;
     }
 
     .pres-sidebar {
@@ -53,12 +146,21 @@
     }
 
     .pres-main {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
         padding: 12px;
         gap: 12px;
     }
 
+    /* Fills the screen, at least 420px tall; the transcript scrolls inside it and the
+       buttons below are reached by scrolling the main pane on short screens. */
     .transcription-window {
-        min-height: 70vh;
+        flex: 1 0 420px;
+    }
+
+    .transcript-canvas {
+        min-height: 0;
     }
 
     .window-role-title {
@@ -154,9 +256,12 @@
     /* ---------- Client page ---------- */
     .aud-wrapper {
         flex-direction: column;
-        height: auto;
-        min-height: 100vh;
-        min-height: 100dvh;
+    }
+
+    .aud-main {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
     }
 
     /* The icon rail becomes a slim bar above the header. */
@@ -199,18 +304,16 @@
         justify-content: center;
     }
 
-    .aud-canvas {
-        padding: 16px;
-        padding-bottom: 96px; /* room for the reaction bar */
-        min-height: 55vh;
+    #live-transcript {
+        padding: 16px 16px 96px; /* bottom: room for the reaction bar */
+        min-height: 240px;
     }
 
     /* Reactions and the bot stay reachable at the bottom of the screen while scrolling. */
     .reaction-bar {
-        position: fixed;
         left: 12px;
         right: 84px;
-        bottom: 14px;
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
         justify-content: flex-start;
         gap: 8px;
     }
@@ -222,9 +325,8 @@
     }
 
     .fab-bot {
-        position: fixed;
         right: 14px;
-        bottom: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
         width: 54px;
         height: 54px;
     }
