@@ -338,7 +338,9 @@
 .team-grid {
     display: grid;
     /* Grid stretches to 4 columns, but stays readable on small screens */
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    /* Cards keep a fixed width and sit centred, so two members don't stretch full-width */
+    grid-template-columns: repeat(auto-fit, minmax(220px, 280px));
+    justify-content: center;
     gap: 40px;
 }
 

@@ -6,7 +6,6 @@ __pycache__/
 .env.*
 !.env.example
 VANI.AI.zip
-main_summary_patch.py
 .vercel-tmp/
 .vercel/
 .git/
