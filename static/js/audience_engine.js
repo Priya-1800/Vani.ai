@@ -3,6 +3,14 @@ let isPaused = false;
 let intentionalClose = false; // set by "Leave" so onclose doesn't report a connection loss
 let sentenceBuffer = ""; // Buffer to hold the current sentence being formed
 
+// Vercel closes every WebSocket when the function reaches maxDuration (300 s in
+// vercel.json), and networks drop, so viewers reconnect to the room on their own.
+const MAX_RECONNECT_ATTEMPTS = 8;
+let currentRoom = null;
+let reconnectAttempts = 0;
+let reconnectTimer = null;
+const HEALTHY_MS = 10000; // a socket that stayed up this long resets the retry budget
+
 // 🪄 THE HACKATHON CHEAT CODE: Free, instant browser-side translation (WITH TIMEOUT FAIL-SAFE)
 async function fetchTranslation(text, targetLang) {
     if (!text || !targetLang) return text;
@@ -38,6 +46,8 @@ function setPanelsJoined(joined) {
 
 function leaveSession() {
     intentionalClose = true;
+    clearTimeout(reconnectTimer);
+    currentRoom = null;
     if (ws) { try { ws.close(); } catch (e) { /* already closed */ } }
     ws = null;
     sentenceBuffer = '';
@@ -82,11 +92,25 @@ function joinStream() {
     joinBtn.innerText = "Connecting...";
     setPanelsJoined(true);
 
+    clearTimeout(reconnectTimer);
+    currentRoom = room;
+    reconnectAttempts = 0;
+    openAudienceSocket(room);
+}
+
+function openAudienceSocket(room) {
+    const joinBtn = document.getElementById('joinBtn');
+    const statusBadge = document.getElementById('status-badge');
+
     // Same host the page was served from, so local dev and Vercel both work (wss on https).
     const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${wsProtocol}//${location.host}/ws/audience/${encodeURIComponent(room)}`);
+    const socket = new WebSocket(`${wsProtocol}//${location.host}/ws/audience/${encodeURIComponent(room)}`);
+    ws = socket;
 
-    ws.onopen = () => {
+    let openedAt = 0;
+
+    socket.onopen = () => {
+        openedAt = Date.now();
         statusBadge.innerText = `Live · ${room}`;
         statusBadge.className = "status-live";
         joinBtn.innerText = "Joined";
@@ -96,7 +120,7 @@ function joinStream() {
         if (hint) hint.innerText = "Connected. Waiting for the host to start speaking...";
     };
 
-    ws.onmessage = async (event) => {
+    socket.onmessage = async (event) => {
         if (isPaused) return; 
 
         try {
@@ -200,8 +224,23 @@ function joinStream() {
         }
     };
 
-    ws.onclose = () => {
+    socket.onclose = () => {
         if (intentionalClose) { intentionalClose = false; return; }
+        // A newer socket (Rejoin, or a reconnect) already replaced this one.
+        if (ws !== socket || currentRoom !== room) return;
+
+        // Reset only after a healthy connection; resetting on open would loop
+        // forever, with no delay, against a server that accepts and then closes.
+        if (openedAt && Date.now() - openedAt > HEALTHY_MS) reconnectAttempts = 0;
+
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            const delay = reconnectAttempts === 0 ? 0 : Math.min(500 * 2 ** reconnectAttempts, 10000);
+            reconnectAttempts += 1;
+            statusBadge.innerText = "Reconnecting...";
+            statusBadge.className = "status-offline";
+            reconnectTimer = setTimeout(() => openAudienceSocket(room), delay);
+            return;
+        }
 
         statusBadge.innerText = "Connection lost";
         statusBadge.className = "status-offline";

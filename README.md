@@ -36,7 +36,7 @@ python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env               # then fill in your keys
-uvicorn main:app --reload
+uvicorn app.main:app --reload
 ```
 
 Open `http://localhost:8000/presenter.html` to present and `http://localhost:8000/audience.html` to watch.
@@ -48,7 +48,21 @@ Open `http://localhost:8000/presenter.html` to present and `http://localhost:800
 | `SPEECHMATICS_API_KEY` | Speechmatics real-time API token |
 | `SPEECHMATICS_URL` | Speechmatics real-time WebSocket URL for your region |
 | `GEMINI_API_KEY` | Gemini API key for summaries |
+| `REDIS_URL` | Redis connection URL. Required on Vercel so the presenter and viewers share a room across function instances. Optional locally. |
 | `APP_API_KEY` | Optional. If set, `/generate_summary` requires an `X-API-Key` header |
+
+## Deploying to Vercel
+
+The app deploys as one Vercel Function (`app/main.py`), and the GitHub Actions workflow in `.github/workflows/deploy.yml` deploys every push to `main`.
+
+1. Run `vercel link` once and add three repository secrets under **Settings > Secrets and variables > Actions**: `VERCEL_TOKEN` (from vercel.com/account/tokens), and `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` (from `.vercel/project.json`).
+2. Add a Redis database to the Vercel project (for example Upstash Redis from the Vercel Marketplace) so that `REDIS_URL` is set.
+3. Set `SPEECHMATICS_API_KEY`, `SPEECHMATICS_URL` and `GEMINI_API_KEY` under the Vercel project's **Settings > Environment Variables**.
+
+Things to know about WebSockets on Vercel:
+
+- Each connection is pinned to one function instance, and the presenter and viewers can land on different instances. Rooms are shared through Redis pub/sub, which is why `REDIS_URL` is required there.
+- Vercel closes every connection when the function reaches `maxDuration` (300 seconds in `vercel.json`). The presenter and audience pages reconnect automatically. The presenter's reconnect starts a new Speechmatics session, so about a second of audio can be lost and speaker labels (S1, S2) may restart.
 
 ## API
 
