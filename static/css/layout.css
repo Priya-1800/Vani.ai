@@ -40,9 +40,90 @@
     color: var(--accent-blue);
 }
 
+/* Anchor jumps land below the fixed 80px header instead of under it */
+section[id] {
+    scroll-margin-top: 90px;
+}
+
+.nav-toggle {
+    display: none;
+}
+
+/* --- PHONES / SMALL TABLETS: collapse the links into a menu button --- */
+@media (max-width: 900px) {
+    .navbar {
+        grid-template-columns: 1fr auto;
+        height: 64px;
+    }
+
+    .nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .nav-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #fff;
+        color: var(--text-main);
+        font-size: 1.1rem;
+        cursor: pointer;
+    }
+
+    .nav-links {
+        display: none;
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        justify-self: stretch; /* the desktop rule centres it, which shrank the dropdown */
+        flex-direction: column;
+        gap: 0;
+        padding: 8px 5% 16px;
+        background: #fff;
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .navbar.is-open .nav-links {
+        display: flex;
+    }
+
+    .nav-links a {
+        padding: 12px 0;
+        font-size: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .nav-links a:last-child {
+        border-bottom: none;
+    }
+
+    section[id] {
+        scroll-margin-top: 74px;
+    }
+}
+
+@media (max-width: 380px) {
+    .login-btn {
+        padding: 7px 10px;
+        font-size: 0.85rem;
+    }
+}
+
 /* --- HERO SECTION LAYOUT --- */
 .hero {
     position: relative;
+    /* The decorative swirl orb sits 5% past the right edge; without clipping it
+       widened the page on phones, so mobile browsers zoomed out and pushed the
+       header partly off-screen. Clip sideways only, so the glow can still bleed vertically. */
+    overflow-x: clip;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
