@@ -5,7 +5,7 @@ fastapi>=0.110,<1.0
 uvicorn[standard]>=0.29,<1.0
 websockets>=14.0,<16     # processor.py uses additional_headers, which needs websockets 14 or newer
 python-dotenv>=1.0,<2.0
-google-generativeai>=0.8,<1.0
+google-genai>=1.0,<3      # Gemini (google-generativeai is discontinued)
 redis>=5.0,<7          # shares audience rooms across Vercel Function instances (REDIS_URL)
 # deep-translator  (listed in the old requirements.txt but not imported by main.py or processor.py;
 #                   check with:  grep -rn deep_translator .  and delete it if nothing uses it)

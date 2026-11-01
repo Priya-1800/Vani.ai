@@ -8,14 +8,19 @@ import asyncio
 import os
 import re
 
-import google.generativeai as genai
+from google import genai
+from google.genai import errors as genai_errors
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+# Optional pin. Google retires model names regularly (gemini-2.5-flash started
+# returning 404 in late 2026), so by default the newest stable "gemini-X.Y-flash"
+# model that this API key can use is picked automatically.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "").strip()
 GEMINI_TIMEOUT_S = 25
 
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+_model_name = None  # cached choice for this function instance
+_STABLE_FLASH = re.compile(r"^gemini-(\d+(?:\.\d+)*)-flash$")
 
 SUMMARY_PROMPT = """You are an AI assistant for a global engineering team.
 Read the following meeting transcript and generate:
@@ -49,15 +54,62 @@ STOPWORDS = set(
 )
 
 
-async def _gemini(prompt: str) -> str:
-    if not GEMINI_API_KEY:
-        raise RuntimeError("GEMINI_API_KEY is not set")
-    model = genai.GenerativeModel(GEMINI_MODEL)
-    response = await asyncio.wait_for(model.generate_content_async(prompt), GEMINI_TIMEOUT_S)
+def choose_model(available, pinned=""):
+    """Pick a model from the names this key can use for generateContent.
+
+    The pinned GEMINI_MODEL wins if it's available; otherwise the highest-versioned
+    stable flash model (no -lite/-preview/-image suffix); otherwise any flash model.
+    """
+    if pinned and pinned in available:
+        return pinned
+    stable = []
+    for name in available:
+        match = _STABLE_FLASH.match(name)
+        if match:
+            stable.append((tuple(int(x) for x in match.group(1).split(".")), name))
+    if stable:
+        return max(stable)[1]
+    flash = sorted(n for n in available if n.startswith("gemini-") and "flash" in n)
+    if flash:
+        return flash[-1]
+    raise RuntimeError("No Gemini text model is available for this API key")
+
+
+async def _resolve_model():
+    global _model_name
+    if _model_name is None:
+        available = []
+        async for model in await _client.aio.models.list():
+            if "generateContent" in (model.supported_actions or []):
+                available.append(model.name.removeprefix("models/"))
+        _model_name = choose_model(available, GEMINI_MODEL)
+        if GEMINI_MODEL and _model_name != GEMINI_MODEL:
+            print(f"⚠️ GEMINI_MODEL={GEMINI_MODEL} is not available; using {_model_name}")
+        print(f"🧠 Using Gemini model {_model_name}")
+    return _model_name
+
+
+async def _generate(prompt: str) -> str:
+    model = await _resolve_model()
+    response = await _client.aio.models.generate_content(model=model, contents=prompt)
     text = (response.text or "").strip()
     if not text:
         raise RuntimeError("Gemini returned an empty response")
     return text
+
+
+async def _gemini(prompt: str) -> str:
+    global _model_name
+    if not _client:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+    try:
+        return await asyncio.wait_for(_generate(prompt), GEMINI_TIMEOUT_S)
+    except genai_errors.ClientError as e:
+        if getattr(e, "code", None) != 404:
+            raise
+        # The cached model was retired while this instance was running: pick again once.
+        _model_name = None
+        return await asyncio.wait_for(_generate(prompt), GEMINI_TIMEOUT_S)
 
 
 def _sentences(text: str):
