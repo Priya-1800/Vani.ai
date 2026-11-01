@@ -17,6 +17,10 @@ class AudioPipeline:
         self.room = room
         self.manager = manager
         self.current_speaker = "Unknown Speaker"
+        # True only when the host pressed Stop. A dropped socket (e.g. Vercel ending
+        # the function at maxDuration) leaves it False so the audience isn't told the
+        # stream ended while the presenter page reconnects.
+        self.ended_by_host = False
 
     async def _notify(self, client_ws, stage, message):
         """Best-effort status frame for the host screen; never breaks the stream."""
@@ -73,6 +77,17 @@ class AudioPipeline:
 
                             # Control messages ("Stream Ended") arrive as text; only
                             # binary frames are audio for Speechmatics.
+                            text = message.get("text")
+                            if text:
+                                try:
+                                    control = json.loads(text)
+                                except ValueError:
+                                    control = {}
+                                if isinstance(control, dict) and control.get("message") == "Stream Ended":
+                                    self.ended_by_host = True
+                                    break
+                                continue
+
                             chunk = message.get("bytes")
                             if chunk:
                                 await sm_ws.send(chunk)

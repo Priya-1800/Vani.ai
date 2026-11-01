@@ -10,6 +10,19 @@ let isOffline = !navigator.onLine;
 let sentenceBuffer = ""; // 🧠 NEW: Stores words until a sentence finishes
 let framesSent = 0;       // Audio chunks pushed to the socket this session
 
+// Reconnect state. Vercel closes every WebSocket when the function reaches its
+// maxDuration (300 s in vercel.json), so long talks need a fresh socket every few
+// minutes; networks also drop. The mic keeps running and the server opens a new
+// Speechmatics session for each socket.
+const MAX_RECONNECT_ATTEMPTS = 6;
+let sessionConfig = null;  // handshake resent on every (re)connect
+let hostStopped = true;    // true until Start, and again after Stop
+let audioStarted = false;  // mic pipeline is set up once per session, not per socket
+let reconnectAttempts = 0;
+let reconnectTimer = null;
+const HEALTHY_MS = 10000; // an AI session that stayed up this long resets the retry budget
+let healthySince = 0;      // when the current socket's Speechmatics session opened
+
 // Live status line in the toolbar ("AI ready", "Streaming", "Mic blocked"...)
 function setStatus(text, color) {
     const status = document.getElementById('status') || document.getElementById('status-badge');
@@ -106,7 +119,7 @@ window.toggleInvitePanel = function () {
 };
 
 window.generateInviteCode = function () {
-    if (ws && ws.readyState === WebSocket.OPEN) {
+    if (!hostStopped) {
         alert("Stop the stream before generating a new code, or your clients will lose the room.");
         return;
     }
@@ -173,70 +186,114 @@ async function startEngine() {
     document.getElementById('inviteBtn').classList.remove('is-active');
     document.getElementById('live-area').classList.add('is-visible');
 
+    sessionConfig = { source: sourceLang, presenter: "Host", room: room };
+    hostStopped = false;
+    audioStarted = false;
+    reconnectAttempts = 0;
+    framesSent = 0;
+
+    // Lock the buttons now so a second click can't open a parallel session while connecting.
+    if (startBtn) startBtn.disabled = true;
+    if (stopBtn) stopBtn.disabled = false;
+    setStatus('Connecting...', '#3b82f6');
+
+    openPresenterSocket();
+}
+
+function openPresenterSocket() {
     // Same host the page was served from, so local dev and Vercel both work (wss on https).
     const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${wsProtocol}//${location.host}/ws/audio`);
+    const socket = new WebSocket(`${wsProtocol}//${location.host}/ws/audio`);
+    ws = socket;
 
-    ws.onopen = () => {
-        framesSent = 0;
+    socket.onopen = () => {
+        healthySince = 0;
+        socket.send(JSON.stringify(sessionConfig));
+
+        if (audioStarted) {
+            setStatus('Reconnected · starting AI...', '#3b82f6');
+            return;
+        }
+        audioStarted = true;
         setStatus('Connecting to AI...', '#3b82f6');
-        if(startBtn) startBtn.disabled = true;
-        if(stopBtn) stopBtn.disabled = false;
 
         const hostHint = document.getElementById('host-hint');
         if (hostHint) hostHint.style.display = 'none';
-
-        ws.send(JSON.stringify({
-            source: sourceLang, 
-            presenter: "Host",
-            room: room
-        }));
 
         setupAudioPipeline();
 
         // A silent microphone used to look like a broken transcriber; say it out loud.
         setTimeout(() => {
-            if (framesSent === 0) {
+            if (!hostStopped && framesSent === 0) {
                 setStatus('No mic audio', '#ef4444');
                 showHostError('No audio is reaching the server. Check the microphone chosen in the toolbar (or a muted tab / wrong input device), then press Stop and Start again.');
             }
         }, 5000);
     };
 
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        const finalSpan = document.getElementById('final-span');
+    socket.onmessage = handlePresenterMessage;
+
+    socket.onclose = () => {
+        // Ignore closes we caused (Stop) and closes of sockets already replaced.
+        if (hostStopped || ws !== socket) return;
+
+        // Only a Speechmatics session that stayed up resets the retry budget, so a
+        // server that keeps failing right after "connected" can't cause a tight loop.
+        if (healthySince && Date.now() - healthySince > HEALTHY_MS) reconnectAttempts = 0;
+
         const partialSpan = document.getElementById('partial-span');
+        if (partialSpan) partialSpan.innerText = '';
 
-        // Server-side progress reports from the Python/Speechmatics pipeline.
-        if (data.type === 'status') {
-            if (data.stage === 'error') {
-                setStatus('AI error', '#ef4444');
-                showHostError(data.message || 'Speechmatics reported an error.');
-            } else if (data.stage === 'connected') {
-                setStatus('AI ready · speak now', '#3b82f6');
-            } else if (data.stage === 'audio') {
-                setStatus('Streaming · live', '#10b981');
-            }
+        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            stopEngine();
+            setStatus('Disconnected', '#ef4444');
+            showHostError('Lost the connection to the server and could not reconnect. Check your network, then press Start again.');
             return;
         }
 
-        const originalText = data.original || data.text || '';
-
-        if (data.type === 'partial') {
-            if (partialSpan) partialSpan.innerText = originalText + " ";
-            return;
-        }
-
-        if (data.type === 'final' || (!data.type && originalText !== "")) {
-            if (finalSpan && originalText) {
-                finalSpan.innerHTML += `<span style="margin-right: 5px; color: black;">${originalText}</span>`;
-                const display = document.getElementById('transcript-display');
-                if(display) display.scrollTop = display.scrollHeight;
-            }
-            if (partialSpan) partialSpan.innerText = '';
-        }
+        // Retry the first drop immediately (the routine maxDuration cut) to lose as
+        // little audio as possible, then back off.
+        const delay = reconnectAttempts === 0 ? 0 : Math.min(500 * 2 ** reconnectAttempts, 10000);
+        reconnectAttempts += 1;
+        setStatus('Reconnecting...', '#eab308');
+        reconnectTimer = setTimeout(openPresenterSocket, delay);
     };
+}
+
+function handlePresenterMessage(event) {
+    const data = JSON.parse(event.data);
+    const finalSpan = document.getElementById('final-span');
+    const partialSpan = document.getElementById('partial-span');
+
+    // Server-side progress reports from the Python/Speechmatics pipeline.
+    if (data.type === 'status') {
+        if (data.stage === 'error') {
+            setStatus('AI error', '#ef4444');
+            showHostError(data.message || 'Speechmatics reported an error.');
+        } else if (data.stage === 'connected') {
+            healthySince = Date.now();
+            setStatus('AI ready · speak now', '#3b82f6');
+        } else if (data.stage === 'audio') {
+            setStatus('Streaming · live', '#10b981');
+        }
+        return;
+    }
+
+    const originalText = data.original || data.text || '';
+
+    if (data.type === 'partial') {
+        if (partialSpan) partialSpan.innerText = originalText + " ";
+        return;
+    }
+
+    if (data.type === 'final' || (!data.type && originalText !== "")) {
+        if (finalSpan && originalText) {
+            finalSpan.innerHTML += `<span style="margin-right: 5px; color: black;">${originalText}</span>`;
+            const display = document.getElementById('transcript-display');
+            if(display) display.scrollTop = display.scrollHeight;
+        }
+        if (partialSpan) partialSpan.innerText = '';
+    }
 }
 
 // --- Audio Pipeline ---
@@ -283,6 +340,10 @@ async function setupAudioPipeline() {
 
 // --- Engine Stop ---
 function stopEngine() {
+    hostStopped = true;
+    audioStarted = false;
+    clearTimeout(reconnectTimer);
+
     if (processor) processor.disconnect();
     if (sourceNode) sourceNode.disconnect();
     if (audioContext) audioContext.close();
