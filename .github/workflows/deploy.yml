@@ -1,0 +1,50 @@
+name: Deploy to Vercel
+
+# Required repository secrets:
+#   VERCEL_TOKEN       - create at https://vercel.com/account/tokens
+#   VERCEL_ORG_ID      - from .vercel/project.json after the first `vercel link`
+#   VERCEL_PROJECT_ID  - from .vercel/project.json after the first `vercel link`
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Deploy to production
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: |
+          set -o pipefail
+          URL=$(vercel deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}" | tail -n 1)
+          echo "Production deployment: $URL"
+          echo "### Production deployment: $URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Deploy preview
+        if: github.event_name == 'pull_request'
+        run: |
+          set -o pipefail
+          URL=$(vercel deploy --yes --token="${{ secrets.VERCEL_TOKEN }}" | tail -n 1)
+          echo "Preview deployment: $URL"
+          echo "### Preview deployment: $URL" >> "$GITHUB_STEP_SUMMARY"

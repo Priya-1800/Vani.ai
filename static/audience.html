@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vani AI | Join a Session</title>
+    <link rel="stylesheet" href="/static/css/global.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/effects.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+<body class="aud-body">
+
+    <div class="aud-wrapper">
+        <aside class="aud-sidebar">
+            <div class="sidebar-icon" onclick="exportTranscript('Vani_Audience_Log.txt')" style="cursor: pointer;" title="Download Transcript">
+                <i class="fas fa-download"></i>
+            </div>
+            <a class="sidebar-icon" href="/presenter.html" title="Host dashboard"><i class="fas fa-microphone"></i></a>
+            <div class="sidebar-icon"><i class="fas fa-history"></i></div>
+        </aside>
+
+        <main class="aud-main">
+            <header class="aud-header">
+                <div class="aud-logo">Vani<span>.ai</span></div>
+                <div id="status-badge" class="status-offline">Not connected</div>
+            </header>
+
+            <div class="aud-window">
+
+                <div class="window-role-title is-visible">
+                    <span class="client-strip-label">Client</span>
+                </div>
+
+                <!-- STEP 1: enter the code the host shared -->
+                <div id="join-panel" class="role-panel is-visible">
+                    <h3 class="role-panel-title">Enter Invite Code</h3>
+                    <input id="join-code" class="role-input code-input" placeholder="e.g. SX4-H51" autocomplete="off" spellcheck="false">
+                    <button id="joinBtn" class="role-action" onclick="joinStream()">Join</button>
+
+                    <div class="client-options">
+                        <label class="client-check" for="aud-translate-toggle">
+                            <input type="checkbox" id="aud-translate-toggle" checked>
+                            Translate to
+                        </label>
+                        <select name="language" id="language-select" class="aud-dropdown" title="Language">
+                            <option value="en" selected>English</option>
+                            <option value="ar">Arabic</option>
+                            <option value="ba">Bashkir</option>
+                            <option value="eu">Basque</option>
+                            <option value="be">Belarusian</option>
+                            <option value="bn">Bengali</option>
+                            <option value="bg">Bulgarian</option>
+                            <option value="yue">Cantonese</option>
+                            <option value="ca">Catalan</option>
+                            <option value="hr">Croatian</option>
+                            <option value="cs">Czech</option>
+                            <option value="da">Danish</option>
+                            <option value="nl">Dutch</option>
+                            <option value="eo">Esperanto</option>
+                            <option value="et">Estonian</option>
+                            <option value="fi">Finnish</option>
+                            <option value="fr">French</option>
+                            <option value="gl">Galician</option>
+                            <option value="de">German</option>
+                            <option value="el">Greek</option>
+                            <option value="he">Hebrew</option>
+                            <option value="hi">Hindi</option>
+                            <option value="hu">Hungarian</option>
+                            <option value="id">Indonesian</option>
+                            <option value="ia">Interlingua</option>
+                            <option value="ga">Irish</option>
+                            <option value="it">Italian</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                            <option value="lv">Latvian</option>
+                            <option value="lt">Lithuanian</option>
+                            <option value="ms">Malay</option>
+                            <option value="mt">Maltese</option>
+                            <option value="cmn">Mandarin</option>
+                            <option value="mr">Marathi</option>
+                            <option value="mn">Mongolian</option>
+                            <option value="no">Norwegian</option>
+                            <option value="fa">Persian</option>
+                            <option value="pl">Polish</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="ro">Romanian</option>
+                            <option value="ru">Russian</option>
+                            <option value="sk">Slovakian</option>
+                            <option value="sl">Slovenian</option>
+                            <option value="es">Spanish</option>
+                            <option value="sw">Swahili</option>
+                            <option value="sv">Swedish</option>
+                            <option value="tl">Tagalog</option>
+                            <option value="ta">Tamil</option>
+                            <option value="th">Thai</option>
+                            <option value="tr">Turkish</option>
+                            <option value="uk">Ukrainian</option>
+                            <option value="ur">Urdu</option>
+                            <option value="ug">Uyghur</option>
+                            <option value="vi">Vietnamese</option>
+                            <option value="cy">Welsh</option>
+                        </select>
+                    </div>
+
+                    <p class="role-panel-note">Ask the host for their invite code, or open the link they sent you.</p>
+                </div>
+
+                <!-- STEP 2: live captions + translation -->
+                <div id="live-area">
+                    <div class="aud-toolbar">
+                        <button id="pauseBtn" class="btn-black" onclick="toggleFeed()"><i class="fas fa-pause"></i> Pause Feed</button>
+                        <button class="btn-outline" onclick="exportTranscript('Vani_Audience_Log.txt')"><i class="fas fa-download"></i> Export</button>
+                        <button class="btn-outline" onclick="leaveSession()"><i class="fas fa-right-from-bracket"></i> Leave</button>
+                    </div>
+
+                    <div id="live-transcript" class="aud-canvas">
+                        <div class="hint-text" id="aud-hint">Waiting for the host to start speaking...</div>
+                        <span id="final-span"></span>
+                        <span id="partial-span" style="color: #94a3b8; font-style: italic;"></span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="fab-bot" onclick="openAudienceBot()">
+                <i class="fas fa-robot"></i>
+            </button>
+            <div class="reaction-bar">
+                <button onclick="sendReaction('❤️')" class="reaction-btn">❤️</button>
+                <button onclick="sendReaction('👏')" class="reaction-btn">👏</button>
+                <button onclick="sendReaction('🤔')" class="reaction-btn">🤔</button>
+                <button onclick="sendReaction('🚀')" class="reaction-btn">🚀</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/audience_engine.js"></script>
+</body>
+</html>

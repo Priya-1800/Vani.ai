@@ -1,0 +1,388 @@
+// ❌ NOTICE: We removed the static import from the top of the file!
+
+let ws;
+let audioContext;
+let processor;
+let sourceNode;
+let streamRef;
+let offlineTranscriber = null;
+let isOffline = !navigator.onLine;
+let sentenceBuffer = ""; // 🧠 NEW: Stores words until a sentence finishes
+let framesSent = 0;       // Audio chunks pushed to the socket this session
+
+// Live status line in the toolbar ("AI ready", "Streaming", "Mic blocked"...)
+function setStatus(text, color) {
+    const status = document.getElementById('status') || document.getElementById('status-badge');
+    if (!status) return;
+    status.innerText = text;
+    if (color) status.style.color = color;
+}
+
+function showHostError(message) {
+    const finalSpan = document.getElementById('final-span');
+    if (!finalSpan) return;
+
+    const line = document.createElement('div');
+    line.style.cssText = 'margin: 8px 0; color: #b91c1c; font-size: 0.95rem; font-weight: 600;';
+    line.innerText = `⚠️ ${message}`;
+    finalSpan.appendChild(line);
+}
+
+// --- Microphone Detection ---
+async function populateMicrophones() {
+    try {
+        // We only ask for basic device info first, to avoid triggering aggressive browser blocks
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(device => device.kind === 'audioinput');
+        const micSelect = document.getElementById('mic-select');
+        
+        if(micSelect) {
+            micSelect.innerHTML = ''; 
+            audioInputs.forEach((device, index) => {
+                const option = document.createElement('option');
+                option.value = device.deviceId;
+                option.text = device.label || `Microphone ${index + 1}`;
+                micSelect.appendChild(option);
+            });
+            
+            // If no mics are found, give a fallback
+            if (audioInputs.length === 0) {
+                micSelect.innerHTML = '<option value="">Default System Mic</option>';
+            }
+        }
+    } catch (err) {
+        console.error("Error fetching mics. The browser might be blocking it:", err);
+        const micSelect = document.getElementById('mic-select');
+        if(micSelect) micSelect.innerHTML = '<option value="">Default System Mic</option>';
+    }
+}
+
+// Run mic detection safely when page loads
+window.addEventListener('load', populateMicrophones);
+
+// --- Offline Engine Init (DYNAMIC IMPORT) ---
+async function initOfflineEngine() {
+    console.log("Loading Edge AI Model quietly in the background...");
+    try {
+        // ✅ DYNAMIC IMPORT: This won't crash the rest of your app if it fails!
+        const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0');
+        offlineTranscriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-base.en');
+        console.log("Edge AI successfully loaded!");
+    } catch(e) { 
+        console.warn("Local Edge model skipped. Either offline or CDN blocked.", e); 
+    }
+}
+initOfflineEngine();
+
+window.addEventListener('offline', () => {
+    isOffline = true;
+    const statusElm = document.getElementById('status') || document.getElementById('status-badge');
+    if (statusElm) {
+        statusElm.className = 'status-offline';
+        statusElm.innerText = 'Offline Mode Active';
+        statusElm.style.color = '#eab308';
+    }
+    alert("Network connection lost! Initializing Zero-Downtime Edge Fallback...");
+    window.location.href = "edge_test.html";
+});
+
+window.addEventListener('online', () => {
+    isOffline = false;
+});
+
+// ==========================================
+// 🎟️ INVITE CODE (this code is the room clients join)
+// ==========================================
+let roomCode = '';
+
+window.toggleInvitePanel = function () {
+    const panel = document.getElementById('invite-panel');
+    const live = document.getElementById('live-area');
+    const isOpen = panel.classList.toggle('is-visible');
+
+    document.getElementById('inviteBtn').classList.toggle('is-active', isOpen);
+    // Show the invite card or the transcript, not both at once.
+    live.classList.toggle('is-visible', !isOpen);
+};
+
+window.generateInviteCode = function () {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        alert("Stop the stream before generating a new code, or your clients will lose the room.");
+        return;
+    }
+
+    // No 0/O/1/I so the code can be read out loud without confusion.
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const pick = (n) => Array.from({ length: n }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+
+    roomCode = `${pick(3)}-${pick(3)}`;
+    document.getElementById('invite-code').value = roomCode;
+
+    const copyBtn = document.getElementById('copyLinkBtn');
+    if (copyBtn) copyBtn.disabled = false;
+};
+
+window.copyInviteLink = async function () {
+    if (!roomCode) return;
+
+    const link = new URL('/audience.html', location.href);
+    link.searchParams.set('code', roomCode);
+
+    try {
+        await navigator.clipboard.writeText(link.toString());
+        const btn = document.getElementById('copyLinkBtn');
+        const label = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+        setTimeout(() => { btn.innerHTML = label; }, 1800);
+    } catch (e) {
+        // Clipboard access needs https or localhost; just show the link instead.
+        prompt("Copy this link for your clients:", link.toString());
+    }
+};
+
+
+// --- Main Engine Start ---
+async function startEngine() {
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const status = document.getElementById('status') || document.getElementById('status-badge');
+
+    // 🛡️ EDGE FALLBACK INTERCEPTOR
+    if (!navigator.onLine || isOffline) {
+        console.log("Network offline. Rerouting to Edge AI...");
+        window.location.href = "edge_test.html";
+        return; 
+    }
+
+    // A code has to exist first, otherwise the room has nobody in it.
+    if (!roomCode) {
+        document.getElementById('invite-panel').classList.add('is-visible');
+        document.getElementById('live-area').classList.remove('is-visible');
+        document.getElementById('inviteBtn').classList.add('is-active');
+        alert('Click "Get code" first and share it with your clients, then press Start.');
+        return;
+    }
+
+    const langDropdown = document.getElementById('source-lang') || document.getElementById('language-select');
+    const sourceLang = langDropdown ? langDropdown.value : 'en';
+
+    // The room is fixed when streaming starts: a code generated mid-session would
+    // silently split presenter and audience. Get code first, then Start.
+    const room = roomCode;
+    document.getElementById('invite-panel').classList.remove('is-visible');
+    document.getElementById('inviteBtn').classList.remove('is-active');
+    document.getElementById('live-area').classList.add('is-visible');
+
+    // Same host the page was served from, so local dev and Vercel both work (wss on https).
+    const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${wsProtocol}//${location.host}/ws/audio`);
+
+    ws.onopen = () => {
+        framesSent = 0;
+        setStatus('Connecting to AI...', '#3b82f6');
+        if(startBtn) startBtn.disabled = true;
+        if(stopBtn) stopBtn.disabled = false;
+
+        const hostHint = document.getElementById('host-hint');
+        if (hostHint) hostHint.style.display = 'none';
+
+        ws.send(JSON.stringify({
+            source: sourceLang, 
+            presenter: "Host",
+            room: room
+        }));
+
+        setupAudioPipeline();
+
+        // A silent microphone used to look like a broken transcriber; say it out loud.
+        setTimeout(() => {
+            if (framesSent === 0) {
+                setStatus('No mic audio', '#ef4444');
+                showHostError('No audio is reaching the server. Check the microphone chosen in the toolbar (or a muted tab / wrong input device), then press Stop and Start again.');
+            }
+        }, 5000);
+    };
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const finalSpan = document.getElementById('final-span');
+        const partialSpan = document.getElementById('partial-span');
+
+        // Server-side progress reports from the Python/Speechmatics pipeline.
+        if (data.type === 'status') {
+            if (data.stage === 'error') {
+                setStatus('AI error', '#ef4444');
+                showHostError(data.message || 'Speechmatics reported an error.');
+            } else if (data.stage === 'connected') {
+                setStatus('AI ready · speak now', '#3b82f6');
+            } else if (data.stage === 'audio') {
+                setStatus('Streaming · live', '#10b981');
+            }
+            return;
+        }
+
+        const originalText = data.original || data.text || '';
+
+        if (data.type === 'partial') {
+            if (partialSpan) partialSpan.innerText = originalText + " ";
+            return;
+        }
+
+        if (data.type === 'final' || (!data.type && originalText !== "")) {
+            if (finalSpan && originalText) {
+                finalSpan.innerHTML += `<span style="margin-right: 5px; color: black;">${originalText}</span>`;
+                const display = document.getElementById('transcript-display');
+                if(display) display.scrollTop = display.scrollHeight;
+            }
+            if (partialSpan) partialSpan.innerText = '';
+        }
+    };
+}
+
+// --- Audio Pipeline ---
+async function setupAudioPipeline() {
+    const micSelect = document.getElementById('mic-select');
+    const selectedMicId = micSelect ? micSelect.value : '';
+    
+    // Ask for the microphone *only* after they click Start
+    const audioConstraints = selectedMicId 
+        ? { audio: { deviceId: { exact: selectedMicId } } } 
+        : { audio: true };
+
+    try {
+        streamRef = await navigator.mediaDevices.getUserMedia(audioConstraints);
+
+        // Capture at the device's native rate; the worklet downsamples to 16 kHz.
+        // Forcing the context to 16 kHz makes Chrome resample the mic stream at
+        // the wrong speed, which Speechmatics then hears as gibberish.
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        sourceNode = audioContext.createMediaStreamSource(streamRef);
+        
+        await audioContext.audioWorklet.addModule('/static/js/audio-processor.worklet.js');
+        processor = new AudioWorkletNode(audioContext, 'audio-processor');
+        
+        processor.port.onmessage = (event) => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(event.data.audioData);
+                framesSent += 1;
+                if (framesSent === 12) setStatus('Mic live · streaming', '#10b981');
+            }
+        };
+
+        console.log(`🎙️ Mic at ${audioContext.sampleRate} Hz, sending 16 kHz PCM over the socket.`);
+
+        sourceNode.connect(processor);
+        processor.connect(audioContext.destination);
+    } catch (e) {
+        console.error("Failed to start audio pipeline. Did you allow microphone access?", e);
+        setStatus('Mic blocked', '#ef4444');
+        showHostError("Microphone could not start. Allow mic access for this site, then press Stop and Start again.");
+        alert("Microphone access denied or failed. Please check your browser permissions.");
+    }
+}
+
+// --- Engine Stop ---
+function stopEngine() {
+    if (processor) processor.disconnect();
+    if (sourceNode) sourceNode.disconnect();
+    if (audioContext) audioContext.close();
+    if (streamRef) streamRef.getTracks().forEach(track => track.stop());
+    
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "system", message: "Stream Ended" }));
+    }
+    
+    if (ws) ws.close();
+
+    const status = document.getElementById('status') || document.getElementById('status-badge');
+    if(status) {
+        status.innerText = "STOPPED";
+        status.style.color = "#64748b";
+    }
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    if(startBtn) startBtn.disabled = false;
+    if(stopBtn) stopBtn.disabled = true;
+}
+
+// 💾 EXPORT TRANSCRIPT LOGIC
+window.exportTranscript = function(filename = "Vani_Transcript.txt") {
+    const finalSpan = document.getElementById('final-span');
+    if (!finalSpan || finalSpan.innerText.trim() === "") {
+        alert("No transcript available to save yet!");
+        return;
+    }
+    const rawText = finalSpan.innerText;
+    const fileHeader = "=========================================\n" +
+                       " VANI.AI - LIVE EVENT TRANSCRIPT\n" +
+                       " Date: " + new Date().toLocaleString() + "\n" +
+                       "=========================================\n\n";
+    const fullText = fileHeader + rawText;
+    const blob = new Blob([fullText], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
+// --- Expose to HTML Buttons ---
+window.startEngine = startEngine;
+window.stopEngine = stopEngine;
+// 🛑 Automatically stop the engine and close WebSockets if the user refreshes or closes the tab!
+window.addEventListener('beforeunload', stopEngine);
+
+// --- GEMINI AI SUMMARY INTEGRATION ---
+
+// Since presenter_engine is a module, we attach it to the window so the HTML onclick can find it
+window.generateAiSummary = async function() {
+    const summaryContainer = document.getElementById('ai-summary-container');
+    const summaryContent = document.getElementById('ai-summary-content');
+    const summarizeBtn = document.getElementById('summarizeBtn');
+    
+    // Grab the transcribed text from the span
+    const finalSpan = document.getElementById('final-span');
+    const fullText = finalSpan.innerText.trim();
+
+    // Check if there is actually text to summarize
+    if (!fullText) {
+        alert("The transcript is empty! Start the engine and speak first before generating a summary.");
+        return;
+    }
+
+    // Update UI to show loading state
+    summaryContainer.style.display = 'block';
+    summaryContent.innerHTML = '<span style="color: #94a3b8;"><i class="fas fa-spinner fa-spin"></i> Gemini is analyzing the meeting transcript...</span>';
+    summarizeBtn.disabled = true;
+    summarizeBtn.style.opacity = '0.5';
+
+    try {
+        // Call your FastAPI backend
+        const response = await fetch('/generate_summary', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ full_text: fullText })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Print the Gemini result into the box
+            summaryContent.innerText = data.summary;
+        } else {
+            summaryContent.innerText = "⚠️ Backend Error: " + (data.summary || "Failed to generate summary.");
+        }
+    } catch (error) {
+        console.error("Summary Generation Error:", error);
+        summaryContent.innerText = "⚠️ Network Error: Could not reach the server to generate the summary.";
+    } finally {
+        // Restore button state
+        summarizeBtn.disabled = false;
+        summarizeBtn.style.opacity = '1';
+    }
+};

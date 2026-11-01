@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vani AI | Edge Fallback</title>
+    <link rel="stylesheet" href="/static/css/global.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/effects.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+<body class="pres-body">
+
+    <div class="pres-wrapper">
+        <aside class="pres-sidebar">
+            <div class="pres-logo">Vani<span>.ai</span></div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item"><i class="fas fa-home"></i> Home</a>
+                <a href="#" class="nav-item active" style="color: #eab308;"><i class="fas fa-bolt"></i> Edge Engine</a>
+                <a href="#" class="nav-item"><i class="fas fa-save"></i> Local Logs</a>
+            </nav>
+        </aside>
+
+        <main class="pres-main">
+            
+            <div class="transcription-window">
+                
+                <div class="window-controls" style="border-bottom: 2px solid #fef08a; background: #fffbeb;">
+                    <div class="control-group">
+                        <button id="loadBtn" class="btn-start" style="background: #eab308; color: black;"><i class="fas fa-download"></i> 1. Boot Local AI</button>
+                        <button id="testBtn" class="btn-stop" style="background: #ef4444; color: white;" disabled><i class="fas fa-microphone"></i> 2. Offline Test (5s)</button>
+                    </div>
+                    
+                    <div id="status" class="status-badge" style="background: #eab308; color: black;">⚠️ OFFLINE FALLBACK ACTIVE</div>
+                </div>
+
+                <div id="transcript-display" class="transcript-canvas" style="background: #f8fafc;">
+                    <div class="hint-text" id="hint">Network connection lost. Click 'Boot Local AI' to load the 140MB WebAssembly Whisper model into your CPU...</div>
+                    
+                    <div id="log-container" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
+                </div>
+            </div>
+
+            <footer class="bottom-actions">
+                <div class="action-buttons">
+                    <span style="color: #64748b; font-size: 0.9em; font-weight: 600;"><i class="fas fa-shield-alt"></i> 100% Local Processing. Zero data leaves this device.</span>
+                </div>
+            </footer>
+
+        </main>
+    </div>
+
+    <script type="module">
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.16.0';
+
+        env.allowLocalModels = false;
+        let transcriber = null;
+        const logContainer = document.getElementById('log-container');
+        const hint = document.getElementById('hint');
+
+        // Custom UI Logger to make it look like Vani.ai
+        function logSystem(msg) {
+            console.log(msg);
+            logContainer.innerHTML += `<div style="color: #64748b; font-style: italic; font-size: 0.9em;">⚙️ ${msg}</div>`;
+            const display = document.getElementById('transcript-display');
+            display.scrollTop = display.scrollHeight;
+        }
+
+        function logResult(text, time) {
+            logContainer.innerHTML += `
+                <div style="margin-top: 15px; margin-bottom: 5px;">
+                    <span style="font-size: 0.75em; font-weight: 700; color: #b45309; text-transform: uppercase; background: #fef3c7; padding: 3px 8px; border-radius: 12px; margin-right: 8px;">
+                        <i class="fas fa-microchip" style="margin-right: 4px;"></i>EDGE AI (${time}s)
+                    </span>
+                    <span style="color: #0f172a; line-height: 1.6; font-size: 1.05em; font-weight: 500;">${text}</span>
+                </div>`;
+            const display = document.getElementById('transcript-display');
+            display.scrollTop = display.scrollHeight;
+        }
+
+        // --- STEP 1: Load the Model ---
+        document.getElementById('loadBtn').addEventListener('click', async () => {
+            document.getElementById('loadBtn').disabled = true;
+            hint.style.display = 'none';
+            logSystem("Allocating WebAssembly memory...");
+            logSystem("Loading Xenova/whisper-base.en from browser cache...");
+
+            try {
+                transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
+                logSystem("✅ Neural network successfully booted into local CPU!");
+                document.getElementById('testBtn').disabled = false;
+                document.getElementById('testBtn').style.cursor = 'pointer';
+            } catch (error) {
+                logSystem(`❌ Failed to load model: ${error}`);
+            }
+        });
+
+        // --- STEP 2: Live Offline Microphone Test ---
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const testBtn = document.getElementById('testBtn');
+            testBtn.disabled = true;
+            testBtn.innerHTML = '<i class="fas fa-circle" style="color: white; animation: pulse 1.5s infinite;"></i> RECORDING...';
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                logSystem("Mic active. Recording 5 seconds of offline audio...");
+                
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                const source = audioContext.createMediaStreamSource(stream);
+                const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                let audioChunks = [];
+                let recordingLength = 0;
+                
+                processor.onaudioprocess = (e) => {
+                    const channelData = e.inputBuffer.getChannelData(0);
+                    audioChunks.push(new Float32Array(channelData));
+                    recordingLength += channelData.length;
+                };
+                
+                source.connect(processor);
+                processor.connect(audioContext.destination);
+                
+                // Stop recording after 5 seconds
+                setTimeout(async () => {
+                    source.disconnect();
+                    processor.disconnect();
+                    stream.getTracks().forEach(track => track.stop()); 
+                    
+                    testBtn.innerHTML = '<i class="fas fa-cog fa-spin"></i> PROCESSING';
+                    logSystem("Recording stopped. Passing array to WebAssembly Whisper...");
+                    
+                    const audioData = new Float32Array(recordingLength);
+                    let offset = 0;
+                    for (let i = 0; i < audioChunks.length; i++) {
+                        audioData.set(audioChunks[i], offset);
+                        offset += audioChunks[i].length;
+                    }
+                    
+                    const startTime = performance.now();
+
+                    try {
+                        const output = await transcriber(audioData); 
+                        const timeTaken = ((performance.now() - startTime) / 1000).toFixed(2);
+                        
+                        logResult(output.text, timeTaken);
+                        
+                    } catch (aiError) {
+                        logSystem(`❌ Inference Error: ${aiError}`);
+                    }
+                    
+                    testBtn.disabled = false;
+                    testBtn.innerHTML = '<i class="fas fa-microphone"></i> 2. Offline Test (5s)';
+                }, 5000);
+
+            } catch (micError) {
+                logSystem(`❌ Mic Access Denied: ${micError}`);
+                testBtn.disabled = false;
+                testBtn.innerHTML = '<i class="fas fa-microphone"></i> 2. Offline Test (5s)';
+            }
+        });
+    </script>
+</body>
+</html>

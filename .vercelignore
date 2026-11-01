@@ -1,0 +1,15 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+VANI.AI.zip
+main_summary_patch.py
+.vercel-tmp/
+.vercel/
+.git/
+
+# Local verification screenshots
+/*.png
