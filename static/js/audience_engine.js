@@ -9,6 +9,18 @@ const MAX_RECONNECT_ATTEMPTS = 8;
 let currentRoom = null;
 let reconnectAttempts = 0;
 let reconnectTimer = null;
+
+// What this viewer has seen, for Export, History and the Vani Bot.
+let audienceSession = null;   // { id, startedAt, room }
+let spokenSentences = [];     // original sentences only (bot context)
+let transcriptLines = [];     // sentence + translation, as exported
+let lastReactionSent = 0;
+
+function saveAudienceSession() {
+    if (!audienceSession || !transcriptLines.length) return;
+    VaniStore.saveSession({ ...audienceSession, role: 'client', text: transcriptLines.join('\n') });
+}
+window.addEventListener('beforeunload', saveAudienceSession);
 const HEALTHY_MS = 10000; // a socket that stayed up this long resets the retry budget
 
 // 🪄 THE HACKATHON CHEAT CODE: Free, instant browser-side translation (WITH TIMEOUT FAIL-SAFE)
@@ -45,6 +57,11 @@ function setPanelsJoined(joined) {
 }
 
 function leaveSession() {
+    saveAudienceSession();
+    if (transcriptLines.length) Vani.toast('Session saved. Open it any time from the history icon.', 'success');
+    audienceSession = null;
+    spokenSentences = [];
+    transcriptLines = [];
     intentionalClose = true;
     clearTimeout(reconnectTimer);
     currentRoom = null;
@@ -95,6 +112,12 @@ function joinStream() {
     clearTimeout(reconnectTimer);
     currentRoom = room;
     reconnectAttempts = 0;
+    if (!audienceSession || audienceSession.room !== room) {
+        saveAudienceSession();
+        audienceSession = { id: VaniStore.newId(), startedAt: new Date().toISOString(), room: room };
+        spokenSentences = [];
+        transcriptLines = [];
+    }
     openAudienceSocket(room);
 }
 
@@ -133,6 +156,7 @@ function openAudienceSocket(room) {
                     statusBadge.innerText = "Stream ended";
                     statusBadge.className = "status-offline";
                 }
+                saveAudienceSession();
                 return;
             }
 
@@ -158,7 +182,7 @@ function openAudienceSocket(room) {
 
             // 1. Handle fast typing text (Grey)
             if (data.type === 'partial') {
-                if (partialSpan) partialSpan.innerText = sentenceBuffer + " " + cleanText;
+                if (partialSpan) partialSpan.innerText = Vani.joinText(sentenceBuffer, cleanText);
                 return;
             }
 
@@ -166,7 +190,7 @@ function openAudienceSocket(room) {
             if (data.type === 'final' || (!data.type && cleanText !== "")) {
                 
                 // Add the new word/chunk to our buffer
-                sentenceBuffer += (sentenceBuffer === "" ? "" : " ") + cleanText;
+                sentenceBuffer = Vani.joinText(sentenceBuffer, cleanText);
 
                 // 🧠 Check if this chunk has a period, question mark, or exclamation mark
                 const isEndOfSentence = /[.!?]/.test(cleanText);
@@ -182,10 +206,13 @@ function openAudienceSocket(room) {
                         <div style="margin-top: 10px; padding: 10px 14px; background: #ffffff; border-radius: 6px; border-left: 3px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-family: system-ui, -apple-system, sans-serif;">
                             <div style="color: #334155; font-size: 15px; line-height: 1.5; font-weight: 400; display: flex; align-items: flex-start; gap: 8px;">
                                 <span style="flex-shrink: 0; font-size: 11px; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px;">
-                                    <i class="fas fa-microphone-alt" style="margin-right: 3px;"></i>${speakerName}
+                                    <i class="fas fa-microphone-alt" style="margin-right: 3px;"></i>${Vani.escapeHtml(speakerName)}
                                 </span>
-                                <span style="color: #0f172a;">${completeSentence}</span>
+                                <span style="color: #0f172a;">${Vani.escapeHtml(completeSentence)}</span>
                             </div>`;
+
+                    spokenSentences.push(completeSentence);
+                    let exportLine = `${speakerName}: ${completeSentence}`;
 
                     // Translate ONLY the complete sentence (saves API calls & improves accuracy!)
                     if (showTranslation) {
@@ -195,14 +222,16 @@ function openAudienceSocket(room) {
                         // Skip the line when target == spoken language, so English rooms
                         // don't print every sentence twice.
                         if (!isSameLanguage) {
+                            exportLine += `\n    → ${translatedText}`;
                             blockHTML += `
                                 <div style="margin-top: 6px; color: #2563eb; font-size: 14px; line-height: 1.5; padding-left: 12px; border-left: 2px solid #bfdbfe; font-weight: 500; margin-left: 2px;">
-                                    ${translatedText}
+                                    ${Vani.escapeHtml(translatedText)}
                                 </div>`;
                         }
                     }
 
                     blockHTML += `</div>`;
+                    transcriptLines.push(exportLine);
 
                     // Append the bundled block to the screen
                     if (finalSpan) {
@@ -275,12 +304,84 @@ function toggleFeed() {
     }
 }
 
+// 🤖 VANI BOT: ask questions about what the speaker has said so far
+const botHistory = [];
+
 function openAudienceBot() {
-    alert("Vani Bot: Do you need a live summary or translation help?");
+    const wrap = document.createElement('div');
+    const log = document.createElement('div');
+    log.className = 'bot-log';
+
+    const addMsg = (who, text) => {
+        const m = document.createElement('div');
+        m.className = `bot-msg bot-msg-${who}`;
+        m.textContent = text;
+        log.appendChild(m);
+        log.scrollTop = log.scrollHeight;
+        return m;
+    };
+
+    if (!botHistory.length) {
+        botHistory.push({ who: 'bot', text: "Hi! Ask me anything about what the speaker has said so far, e.g. \"What was the main point?\"" });
+    }
+    botHistory.forEach(m => addMsg(m.who, m.text));
+
+    const row = document.createElement('form');
+    row.className = 'bot-input-row';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = 500;
+    input.placeholder = 'Ask about the talk...';
+    const send = document.createElement('button');
+    send.type = 'submit';
+    send.className = 'vani-btn vani-btn-primary';
+    send.textContent = 'Ask';
+    row.append(input, send);
+
+    row.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const question = input.value.trim();
+        if (!question) return;
+        input.value = '';
+        botHistory.push({ who: 'user', text: question });
+        addMsg('user', question);
+        const pending = addMsg('bot', 'Thinking...');
+        send.disabled = true;
+
+        const transcript = [...spokenSentences, sentenceBuffer].filter(Boolean).join(' ');
+        let reply;
+        try {
+            const res = await fetch('/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question, transcript: transcript.slice(-60000) }),
+            });
+            const data = await res.json();
+            reply = res.ok ? data.answer : "Sorry, I couldn't answer that right now.";
+        } catch (err) {
+            reply = "I can't reach the server right now. Check your connection and try again.";
+        }
+        pending.textContent = reply;
+        botHistory.push({ who: 'bot', text: reply });
+        send.disabled = false;
+        input.focus();
+    });
+
+    wrap.append(log, row);
+    Vani.openModal('Vani Bot', wrap);
 }
 
 // 🎈 FLOATING EMOJI ANIMATION LOGIC
 window.sendReaction = function(emoji) {
+    // Send to the host's screen (rate-limited here and on the server).
+    const now = Date.now();
+    if (ws && ws.readyState === WebSocket.OPEN && now - lastReactionSent > 300) {
+        lastReactionSent = now;
+        ws.send(JSON.stringify({ type: 'reaction', emoji: emoji }));
+    } else if (!ws || ws.readyState !== WebSocket.OPEN) {
+        Vani.toast('Join a session to send reactions to the host.');
+    }
+
     const floater = document.createElement('div');
     floater.innerText = emoji;
     floater.style.position = 'fixed';
@@ -312,35 +413,12 @@ window.sendReaction = function(emoji) {
 
 // 💾 EXPORT TRANSCRIPT LOGIC
 window.exportTranscript = function(filename = "Vani_Transcript.txt") {
-    const finalSpan = document.getElementById('final-span');
-    
-    if (!finalSpan || finalSpan.innerText.trim() === "") {
-        alert("No transcript available to save yet!");
+    if (!transcriptLines.length) {
+        Vani.toast("No transcript to export yet.", 'error');
         return;
     }
-
-    // Grab the visible text (this automatically strips out the HTML tags!)
-    const rawText = finalSpan.innerText;
-    
-    // Add a beautiful header to the text file
-    const fileHeader = "=========================================\n" +
-                       " VANI.AI - LIVE EVENT TRANSCRIPT\n" +
-                       " Date: " + new Date().toLocaleString() + "\n" +
-                       "=========================================\n\n";
-
-    const fullText = fileHeader + rawText;
-
-    // Create a virtual file (Blob) in the browser
-    const blob = new Blob([fullText], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    
-    // Create a hidden link, click it, and destroy it
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    Vani.downloadText(filename, Vani.formatSession({
+        ...(audienceSession || {}),
+        text: transcriptLines.join('\n'),
+    }));
 };

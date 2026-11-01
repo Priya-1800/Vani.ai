@@ -9,7 +9,8 @@ try:
 except ImportError:  # redis is only needed when REDIS_URL is set
     aioredis = None
 
-CHANNEL_PREFIX = "vani:room:"
+CHANNEL_PREFIX = "vani:room:"   # presenter -> audience (captions)
+HOST_PREFIX = "vani:host:"      # audience -> presenter (reactions)
 
 
 def _redis_url() -> Optional[str]:
@@ -31,6 +32,7 @@ class ConnectionManager:
 
     def __init__(self):
         self.rooms: Dict[str, Set[WebSocket]] = {}
+        self.hosts: Dict[str, Set[WebSocket]] = {}  # presenter sockets on this instance
         self._listeners: Dict[str, asyncio.Task] = {}
         self._redis = None
         self._redis_checked = False
@@ -53,7 +55,9 @@ class ConnectionManager:
         print(f"📺 Audience joined room '{room}'. Viewers on this instance: {len(self.rooms[room])}")
 
         if self._client() and room not in self._listeners:
-            self._listeners[room] = asyncio.create_task(self._listen(room))
+            self._listeners[room] = asyncio.create_task(
+                self._subscribe(CHANNEL_PREFIX + room, lambda m: self._send_local(room, m), lambda: room in self.rooms)
+            )
 
     def disconnect(self, room: str, websocket: WebSocket):
         viewers = self.rooms.get(room)
@@ -87,22 +91,55 @@ class ConnectionManager:
                 print(f"⚠️ Dropping dead viewer socket: {e}")
                 self.disconnect(room, connection)
 
-    async def _listen(self, room: str):
-        """Forward this room's Redis messages to the viewers held by this instance."""
+    async def publish_to_host(self, room: str, message: str):
+        """Send an audience message (e.g. a reaction) to the room's presenter, on any instance."""
+        client = self._client()
+        if client:
+            try:
+                await client.publish(HOST_PREFIX + room, message)
+                return
+            except Exception as e:
+                print(f"⚠️ Redis publish to host failed, delivering locally only: {e}")
+        for host in list(self.hosts.get(room, ())):
+            try:
+                await host.send_text(message)
+            except Exception:
+                self.hosts.get(room, set()).discard(host)
+
+    async def host_feed(self, room: str, websocket: WebSocket):
+        """Run for the length of a presenter session: deliver audience messages to the host.
+
+        Cancel the task to stop it.
+        """
+        self.hosts.setdefault(room, set()).add(websocket)
+        try:
+            if self._client():
+                await self._subscribe(HOST_PREFIX + room, websocket.send_text, lambda: True)
+            else:
+                await asyncio.Event().wait()  # in-memory mode: publish_to_host sends directly
+        finally:
+            hosts = self.hosts.get(room)
+            if hosts is not None:
+                hosts.discard(websocket)
+                if not hosts:
+                    del self.hosts[room]
+
+    async def _subscribe(self, channel: str, deliver, keep_going):
+        """Forward messages from a Redis channel to deliver() until keep_going() is False or cancelled."""
         delay = 1
-        while room in self.rooms:
+        while keep_going():
             pubsub = self._redis.pubsub()
             try:
-                await pubsub.subscribe(CHANNEL_PREFIX + room)
+                await pubsub.subscribe(channel)
                 delay = 1
                 async for item in pubsub.listen():
                     if item.get("type") == "message":
-                        await self._send_local(room, item["data"])
+                        await deliver(item["data"])
                 await asyncio.sleep(delay)  # listen() ended without an error; don't spin
             except asyncio.CancelledError:
                 raise
             except Exception as e:
-                print(f"⚠️ Redis subscription for room '{room}' dropped, retrying in {delay}s: {e}")
+                print(f"⚠️ Redis subscription '{channel}' dropped, retrying in {delay}s: {e}")
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, 30)
             finally:
@@ -110,6 +147,15 @@ class ConnectionManager:
                     await pubsub.aclose()
                 except Exception:
                     pass
+
+    async def save_contact_message(self, entry: str) -> bool:
+        """Keep the latest contact-form messages in Redis (list vani:contact). False without Redis."""
+        client = self._client()
+        if not client:
+            return False
+        await client.lpush("vani:contact", entry)
+        await client.ltrim("vani:contact", 0, 499)
+        return True
 
 
 manager = ConnectionManager()

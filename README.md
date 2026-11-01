@@ -47,9 +47,14 @@ Open `http://localhost:8000/presenter.html` to present and `http://localhost:800
 |---|---|
 | `SPEECHMATICS_API_KEY` | Speechmatics real-time API token |
 | `SPEECHMATICS_URL` | Speechmatics real-time WebSocket URL for your region |
-| `GEMINI_API_KEY` | Gemini API key for summaries |
+| `GEMINI_API_KEY` | Gemini API key for summaries and Vani Bot. Without it (or if Gemini fails) both fall back to a simple answer built from the transcript |
+| `GEMINI_MODEL` | Optional. Gemini model name, default `gemini-2.5-flash` |
 | `REDIS_URL` | Redis connection URL. Required on Vercel so the presenter and viewers share a room across function instances. Optional locally. |
 | `APP_API_KEY` | Optional. If set, `/generate_summary` requires an `X-API-Key` header |
+
+## Saved data
+
+Save, History, Settings (glossary, default language, auto-save) and Profile are stored in the browser's localStorage. There are no accounts, so they stay on the device where they were created.
 
 ## Deploying to Vercel
 
@@ -68,10 +73,13 @@ Things to know about WebSockets on Vercel:
 
 | Route | Type | Description |
 |---|---|---|
-| `/presenter.html`, `/audience.html`, `/edge_test.html` | GET | Frontend pages |
+| `/presenter.html`, `/audience.html`, `/edge_test.html`, `/legal.html` | GET | Frontend pages |
 | `/ws/audio` | WebSocket | Presenter audio. First message is JSON: `{"source": "en", "target": "hi", "glossary": [], "room": "default"}`, then binary PCM |
-| `/ws/audience/{room}` | WebSocket | Audience stream for a room |
-| `/generate_summary` | POST | Body `{"full_text": "..."}` returns `{"summary": "..."}` |
+| `/ws/audience/{room}` | WebSocket | Audience stream for a room. Viewers may send `{"type": "reaction", "emoji": "👏"}` (❤️ 👏 🤔 🚀), which is forwarded to the host |
+| `/generate_summary` | POST | Body `{"full_text": "..."}` returns `{"summary": "...", "source": "gemini" or "fallback"}` |
+| `/ask` | POST | Vani Bot. Body `{"question": "...", "transcript": "..."}` returns `{"answer": "...", "source": ...}` |
+| `/contact` | POST | Landing-page contact form. Body `{"name", "email", "message"}`. Stored in the Redis list `vani:contact` (latest 500); read them in the Upstash console |
+| `/docs` | GET | Interactive API documentation (FastAPI) |
 
 ## Roadmap
 

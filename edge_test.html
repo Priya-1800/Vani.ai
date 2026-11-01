@@ -15,9 +15,9 @@
         <aside class="pres-sidebar">
             <div class="pres-logo">Vani<span>.ai</span></div>
             <nav class="sidebar-nav">
-                <a href="#" class="nav-item"><i class="fas fa-home"></i> Home</a>
-                <a href="#" class="nav-item active" style="color: #eab308;"><i class="fas fa-bolt"></i> Edge Engine</a>
-                <a href="#" class="nav-item"><i class="fas fa-save"></i> Local Logs</a>
+                <a href="/" class="nav-item"><i class="fas fa-home"></i> Home</a>
+                <a href="/edge_test.html" class="nav-item active" style="color: #eab308;"><i class="fas fa-bolt"></i> Edge Engine</a>
+                <a href="#" class="nav-item" onclick="downloadLocalLogs(); return false;"><i class="fas fa-save"></i> Local Logs</a>
             </nav>
         </aside>
 
@@ -57,6 +57,21 @@
         let transcriber = null;
         const logContainer = document.getElementById('log-container');
         const hint = document.getElementById('hint');
+
+        // "Local Logs" in the sidebar: download everything shown in the log panel.
+        window.downloadLocalLogs = function () {
+            const text = logContainer.innerText.trim();
+            if (!text) { alert("No logs yet. Boot the local AI first."); return; }
+            const blob = new Blob([text], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Vani_Edge_Logs.txt';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        };
 
         // Custom UI Logger to make it look like Vani.ai
         function logSystem(msg) {

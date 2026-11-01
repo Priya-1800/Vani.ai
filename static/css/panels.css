@@ -1,0 +1,280 @@
+/* Modals, toasts, history list, host reactions and the Vani Bot chat. */
+
+.vani-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.vani-modal {
+    background: #fff;
+    border-radius: 14px;
+    width: min(560px, 100%);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+    font-family: inherit;
+}
+
+.vani-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px 10px;
+}
+
+.vani-modal-header h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    color: #0f172a;
+}
+
+.vani-modal-close {
+    border: none;
+    background: transparent;
+    font-size: 1.1rem;
+    color: #64748b;
+    cursor: pointer;
+    padding: 6px;
+}
+
+.vani-modal-body {
+    padding: 6px 22px 16px;
+    overflow-y: auto;
+    color: #334155;
+}
+
+.vani-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 22px 18px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.vani-btn {
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #0f172a;
+}
+
+.vani-btn-primary {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
+.vani-btn-danger {
+    background: #fff;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+.vani-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.vani-field label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #0f172a;
+}
+
+.vani-field input[type="text"],
+.vani-field textarea,
+.vani-field select {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 9px 11px;
+    font: inherit;
+    font-size: 0.95rem;
+    color: #0f172a;
+}
+
+.vani-field small,
+.vani-muted {
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+.vani-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    font-size: 0.92rem;
+}
+
+/* History list */
+.vani-history-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.vani-history-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.vani-history-info span {
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+.vani-history-info p {
+    margin: 4px 0 0;
+    font-size: 0.9rem;
+    color: #334155;
+    overflow-wrap: anywhere;
+}
+
+.vani-history-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.vani-icon-btn {
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+    color: #334155;
+}
+
+.vani-icon-btn:hover {
+    background: #f8fafc;
+}
+
+.vani-transcript-view {
+    white-space: pre-wrap;
+    font-family: inherit;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Toasts */
+#vani-toasts {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1100;
+}
+
+.vani-toast {
+    background: #0f172a;
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+    transition: opacity 0.4s, transform 0.4s;
+}
+
+.vani-toast-success { background: #047857; }
+.vani-toast-error { background: #b91c1c; }
+
+.vani-toast.is-leaving {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+/* Sidebar profile name (host) */
+.pres-profile-name {
+    margin: -6px 0 18px;
+    font-size: 0.85rem;
+    color: #64748b;
+    overflow-wrap: anywhere;
+}
+
+/* Reactions arriving on the host screen */
+.host-reaction {
+    position: fixed;
+    right: 60px;
+    bottom: 120px;
+    font-size: 34px;
+    pointer-events: none;
+    z-index: 900;
+    transition: transform 2.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 2.2s;
+}
+
+#reaction-tally {
+    display: none;
+    gap: 10px;
+    font-size: 0.95rem;
+    color: #334155;
+}
+
+#reaction-tally.is-visible {
+    display: flex;
+}
+
+/* Vani Bot chat (client) */
+.bot-log {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 45vh;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.bot-msg {
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 0.93rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    max-width: 90%;
+}
+
+.bot-msg-user {
+    align-self: flex-end;
+    background: #2563eb;
+    color: #fff;
+}
+
+.bot-msg-bot {
+    align-self: flex-start;
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.bot-input-row {
+    display: flex;
+    gap: 8px;
+}
+
+.bot-input-row input {
+    flex: 1;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 9px 11px;
+    font: inherit;
+}

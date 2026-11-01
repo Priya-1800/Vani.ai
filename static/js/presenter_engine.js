@@ -20,6 +20,14 @@ let hostStopped = true;    // true until Start, and again after Stop
 let audioStarted = false;  // mic pipeline is set up once per session, not per socket
 let reconnectAttempts = 0;
 let reconnectTimer = null;
+
+// The transcript as plain text is the source of truth for Save / Export / Summary;
+// the on-screen span also holds error notes that shouldn't be exported.
+let transcriptText = '';
+let summaryText = '';
+let currentSession = null;   // { id, startedAt, room, language } for this page's transcript
+let savedSnapshot = '';      // transcript + summary at the last save, to detect unsaved changes
+let reactionCounts = {};
 const HEALTHY_MS = 10000; // an AI session that stayed up this long resets the retry budget
 let healthySince = 0;      // when the current socket's Speechmatics session opened
 
@@ -186,7 +194,24 @@ async function startEngine() {
     document.getElementById('inviteBtn').classList.remove('is-active');
     document.getElementById('live-area').classList.add('is-visible');
 
-    sessionConfig = { source: sourceLang, presenter: "Host", room: room };
+    const settings = VaniStore.getSettings();
+    const profile = VaniStore.getProfile();
+    sessionConfig = {
+        source: sourceLang,
+        presenter: profile.name || "Host",
+        room: room,
+        glossary: settings.glossary || [],
+    };
+
+    // Pressing Start again after Stop continues the same transcript.
+    if (!currentSession) {
+        currentSession = {
+            id: VaniStore.newId(),
+            startedAt: new Date().toISOString(),
+            room: room,
+            language: langDropdown ? langDropdown.options[langDropdown.selectedIndex].text : sourceLang,
+        };
+    }
     hostStopped = false;
     audioStarted = false;
     reconnectAttempts = 0;
@@ -279,6 +304,11 @@ function handlePresenterMessage(event) {
         return;
     }
 
+    if (data.type === 'reaction') {
+        showHostReaction(data.emoji);
+        return;
+    }
+
     const originalText = data.original || data.text || '';
 
     if (data.type === 'partial') {
@@ -288,7 +318,9 @@ function handlePresenterMessage(event) {
 
     if (data.type === 'final' || (!data.type && originalText !== "")) {
         if (finalSpan && originalText) {
-            finalSpan.innerHTML += `<span style="margin-right: 5px; color: black;">${originalText}</span>`;
+            const before = transcriptText;
+            transcriptText = Vani.joinText(transcriptText, originalText);
+            finalSpan.appendChild(document.createTextNode(transcriptText.slice(before.length)));
             const display = document.getElementById('transcript-display');
             if(display) display.scrollTop = display.scrollHeight;
         }
@@ -364,35 +396,221 @@ function stopEngine() {
     const stopBtn = document.getElementById('stopBtn');
     if(startBtn) startBtn.disabled = false;
     if(stopBtn) stopBtn.disabled = true;
+
+    if (VaniStore.getSettings().autoSave && hasUnsavedChanges()) {
+        saveTranscript({ quiet: true });
+    }
 }
 
 // 💾 EXPORT TRANSCRIPT LOGIC
 window.exportTranscript = function(filename = "Vani_Transcript.txt") {
-    const finalSpan = document.getElementById('final-span');
-    if (!finalSpan || finalSpan.innerText.trim() === "") {
-        alert("No transcript available to save yet!");
+    if (!transcriptText.trim()) {
+        Vani.toast("No transcript to export yet.", 'error');
         return;
     }
-    const rawText = finalSpan.innerText;
-    const fileHeader = "=========================================\n" +
-                       " VANI.AI - LIVE EVENT TRANSCRIPT\n" +
-                       " Date: " + new Date().toLocaleString() + "\n" +
-                       "=========================================\n\n";
-    const fullText = fileHeader + rawText;
-    const blob = new Blob([fullText], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    Vani.downloadText(filename, Vani.formatSession(buildSession()));
 };
+
+// ==========================================
+// 💾 SAVE / HISTORY / NEW TRANSCRIPTION
+// ==========================================
+function buildSession() {
+    const profile = VaniStore.getProfile();
+    const base = currentSession || { id: VaniStore.newId(), startedAt: new Date().toISOString(), room: roomCode };
+    currentSession = base;
+    return {
+        ...base,
+        role: 'host',
+        host: profile.name || '',
+        text: transcriptText.trim(),
+        summary: summaryText,
+    };
+}
+
+function hasUnsavedChanges() {
+    return transcriptText.trim() !== '' && (transcriptText + summaryText) !== savedSnapshot;
+}
+
+function saveTranscript(options = {}) {
+    if (!transcriptText.trim()) {
+        if (!options.quiet) Vani.toast("Nothing to save yet. Press Start and speak first.", 'error');
+        return false;
+    }
+    if (!VaniStore.saveSession(buildSession())) {
+        Vani.toast("Could not save: browser storage is full or blocked.", 'error');
+        return false;
+    }
+    savedSnapshot = transcriptText + summaryText;
+    Vani.toast(options.quiet ? "Transcript auto-saved to History." : "Saved. Find it under History.", 'success');
+    return true;
+}
+
+function newTranscription() {
+    const startFresh = () => {
+        if (!hostStopped) stopEngine();
+        location.reload();
+    };
+    if (!hasUnsavedChanges()) {
+        if (hostStopped || confirm("Stop the live session and start a new transcription?")) startFresh();
+        return;
+    }
+    Vani.openModal('Start a new transcription?', 'The current transcript has unsaved changes.', [
+        { label: 'Cancel', onClick: close => close() },
+        { label: 'Discard', kind: 'danger', onClick: () => { savedSnapshot = transcriptText + summaryText; startFresh(); } },
+        { label: 'Save and start new', kind: 'primary', onClick: () => { if (saveTranscript()) startFresh(); } },
+    ]);
+}
+
+// ==========================================
+// ⚙️ SETTINGS AND 👤 PROFILE
+// ==========================================
+function field(labelText, input, hint) {
+    const wrap = document.createElement('div');
+    wrap.className = 'vani-field';
+    const label = document.createElement('label');
+    label.textContent = labelText;
+    if (input.id) label.htmlFor = input.id;
+    wrap.append(label, input);
+    if (hint) {
+        const small = document.createElement('small');
+        small.textContent = hint;
+        wrap.appendChild(small);
+    }
+    return wrap;
+}
+
+function openSettings() {
+    const settings = VaniStore.getSettings();
+    const form = document.createElement('div');
+
+    const glossary = document.createElement('textarea');
+    glossary.id = 'set-glossary';
+    glossary.rows = 3;
+    glossary.placeholder = 'e.g. Vani.ai, Speechmatics, Kubernetes';
+    glossary.value = (settings.glossary || []).join(', ');
+
+    const lang = document.createElement('select');
+    lang.id = 'set-language';
+    const pageLang = document.getElementById('language-select');
+    if (pageLang) {
+        [...pageLang.options].forEach(o => lang.add(new Option(o.text, o.value)));
+        lang.value = settings.defaultLanguage || pageLang.value;
+    }
+
+    const autoWrap = document.createElement('label');
+    autoWrap.className = 'vani-check';
+    const auto = document.createElement('input');
+    auto.type = 'checkbox';
+    auto.checked = settings.autoSave !== false;
+    autoWrap.append(auto, document.createTextNode('Save the transcript automatically when I press Stop'));
+
+    form.append(
+        field('Glossary', glossary, 'Names and technical words the speech engine should recognise. Separate with commas. Applies the next time you press Start.'),
+        field('Default spoken language', lang),
+        autoWrap,
+    );
+
+    Vani.openModal('Settings', form, [
+        { label: 'Cancel', onClick: close => close() },
+        {
+            label: 'Save settings', kind: 'primary', onClick: close => {
+                const words = glossary.value.split(/[,\n]/).map(w => w.trim()).filter(Boolean).slice(0, 100);
+                VaniStore.saveSettings({ glossary: words, defaultLanguage: lang.value, autoSave: auto.checked });
+                if (pageLang && hostStopped) pageLang.value = lang.value;
+                close();
+                Vani.toast('Settings saved.', 'success');
+            }
+        },
+    ]);
+}
+
+function openProfile() {
+    const profile = VaniStore.getProfile();
+    const form = document.createElement('div');
+
+    const name = document.createElement('input');
+    name.type = 'text';
+    name.id = 'prof-name';
+    name.maxLength = 60;
+    name.placeholder = 'e.g. Priya Thakur';
+    name.value = profile.name;
+
+    const org = document.createElement('input');
+    org.type = 'text';
+    org.id = 'prof-org';
+    org.maxLength = 80;
+    org.placeholder = 'e.g. Pune Institute';
+    org.value = profile.organization;
+
+    form.append(
+        field('Your name', name, 'Shown in the sidebar and on exported and saved transcripts.'),
+        field('Organization', org),
+    );
+    const note = document.createElement('p');
+    note.className = 'vani-muted';
+    note.textContent = 'Stored in this browser only. Vani.ai has no accounts.';
+    form.appendChild(note);
+
+    Vani.openModal('Profile', form, [
+        { label: 'Cancel', onClick: close => close() },
+        {
+            label: 'Save profile', kind: 'primary', onClick: close => {
+                VaniStore.saveProfile({ name: name.value.trim(), organization: org.value.trim() });
+                renderProfileName();
+                close();
+                Vani.toast('Profile saved.', 'success');
+            }
+        },
+    ]);
+}
+
+function renderProfileName() {
+    const el = document.getElementById('profile-name');
+    if (!el) return;
+    const p = VaniStore.getProfile();
+    el.textContent = p.name ? `Signed in as ${p.name}${p.organization ? ' · ' + p.organization : ''}` : '';
+}
+
+function applySavedPreferences() {
+    renderProfileName();
+    const settings = VaniStore.getSettings();
+    const pageLang = document.getElementById('language-select');
+    if (pageLang && settings.defaultLanguage) pageLang.value = settings.defaultLanguage;
+}
+window.addEventListener('load', applySavedPreferences);
+
+// ==========================================
+// 🎈 AUDIENCE REACTIONS ON THE HOST SCREEN
+// ==========================================
+function showHostReaction(emoji) {
+    if (!emoji) return;
+    reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+
+    const tally = document.getElementById('reaction-tally');
+    if (tally) {
+        tally.textContent = Object.entries(reactionCounts).map(([e, n]) => `${e} ${n}`).join('   ');
+        tally.classList.add('is-visible');
+    }
+
+    const el = document.createElement('div');
+    el.className = 'host-reaction';
+    el.textContent = emoji;
+    el.style.right = `${40 + Math.random() * 80}px`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => {
+        el.style.transform = `translate(${Math.random() * 60 - 30}px, -280px)`;
+        el.style.opacity = '0';
+    });
+    setTimeout(() => el.remove(), 2300);
+}
 
 // --- Expose to HTML Buttons ---
 window.startEngine = startEngine;
 window.stopEngine = stopEngine;
+window.saveTranscript = saveTranscript;
+window.newTranscription = newTranscription;
+window.openSettings = openSettings;
+window.openProfile = openProfile;
 // 🛑 Automatically stop the engine and close WebSockets if the user refreshes or closes the tab!
 window.addEventListener('beforeunload', stopEngine);
 
@@ -405,12 +623,11 @@ window.generateAiSummary = async function() {
     const summarizeBtn = document.getElementById('summarizeBtn');
     
     // Grab the transcribed text from the span
-    const finalSpan = document.getElementById('final-span');
-    const fullText = finalSpan.innerText.trim();
+    const fullText = transcriptText.trim();
 
     // Check if there is actually text to summarize
     if (!fullText) {
-        alert("The transcript is empty! Start the engine and speak first before generating a summary.");
+        Vani.toast("The transcript is empty. Press Start and speak first.", 'error');
         return;
     }
 
@@ -434,9 +651,13 @@ window.generateAiSummary = async function() {
         
         if (response.ok) {
             // Print the Gemini result into the box
-            summaryContent.innerText = data.summary;
+            summaryText = data.summary;
+            summaryContent.innerText = data.source === 'fallback'
+                ? "⚠️ Gemini is unavailable right now, so this is a basic summary made from the transcript.\n\n" + data.summary
+                : data.summary;
         } else {
-            summaryContent.innerText = "⚠️ Backend Error: " + (data.summary || "Failed to generate summary.");
+            const detail = Array.isArray(data.detail) ? data.detail.map(d => d.msg).join('; ') : data.detail;
+            summaryContent.innerText = "⚠️ Could not generate the summary: " + (detail || response.statusText);
         }
     } catch (error) {
         console.error("Summary Generation Error:", error);

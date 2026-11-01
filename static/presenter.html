@@ -6,18 +6,21 @@
     <link rel="stylesheet" href="/static/css/global.css">
     <link rel="stylesheet" href="/static/css/layout.css">
     <link rel="stylesheet" href="/static/css/effects.css">
+    <link rel="stylesheet" href="/static/css/panels.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 </head>
 <body class="pres-body">
 
     <div class="pres-wrapper">
         <aside class="pres-sidebar">
-            <div class="pres-logo">Vani<span>.ai</span></div>
+            <a href="/" class="pres-logo" style="text-decoration: none;" title="Home">Vani<span>.ai</span></a>
+            <div id="profile-name" class="pres-profile-name"></div>
             <nav class="sidebar-nav">
-                <a href="#" class="nav-item active" onclick="location.reload()"><i class="fas fa-plus"></i> New Transcription</a>
-                <a href="#" class="nav-item"><i class="fas fa-save"></i> Save</a>
-                <a href="#" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
-                <a href="#" class="nav-item"><i class="fas fa-user"></i> Profile</a>
+                <a href="#" class="nav-item active" onclick="newTranscription(); return false;"><i class="fas fa-plus"></i> New Transcription</a>
+                <a href="#" class="nav-item" onclick="saveTranscript(); return false;"><i class="fas fa-save"></i> Save</a>
+                <a href="#" class="nav-item" onclick="Vani.openHistory('host'); return false;"><i class="fas fa-history"></i> History</a>
+                <a href="#" class="nav-item" onclick="openSettings(); return false;"><i class="fas fa-cog"></i> Settings</a>
+                <a href="#" class="nav-item" onclick="openProfile(); return false;"><i class="fas fa-user"></i> Profile</a>
             </nav>
         </aside>
 
@@ -127,7 +130,7 @@
 
                 <div id="ai-summary-container" style="display: none; margin-top: 20px; padding: 20px; background: #1e293b; border-radius: 8px; border: 1px solid #334155;">
                     <h3 style="margin-top: 0; color: #38bdf8; font-size: 1.2rem; margin-bottom: 15px;">
-                        <i class="fas fa-sparkles"></i> AI Meeting Summary
+                        <i class="fas fa-wand-magic-sparkles"></i> AI Meeting Summary
                     </h3>
                     <div id="ai-summary-content" style="white-space: pre-wrap; color: #e2e8f0; line-height: 1.6;"></div>
                 </div>
@@ -135,17 +138,19 @@
 
             <footer class="bottom-actions">
                 <div class="action-buttons">
-                    <button class="btn-outline" onclick="alert('Transcript Saved!')"><i class="fas fa-bookmark"></i> Save</button>
+                    <button class="btn-outline" onclick="saveTranscript()"><i class="fas fa-bookmark"></i> Save</button>
                     <button class="btn-outline" onclick="exportTranscript('Vani_Master_Transcript.txt')"><i class="fas fa-download"></i> Export</button>
                     <button class="btn-blue" id="summarizeBtn" onclick="generateAiSummary()" style="background-color: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;">
                         <i class="fas fa-magic"></i> Generate Summary
                     </button>
+                    <div id="reaction-tally" title="Audience reactions this session"></div>
                 </div>
             </footer>
 
         </main>
     </div>
 
+    <script src="/static/js/vani_common.js"></script>
     <script type="module" src="/static/js/presenter_engine.js"></script>
 </body>
 </html>
