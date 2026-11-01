@@ -128,12 +128,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-document.querySelector('.cu-form').addEventListener('submit', function(e) {
+document.querySelector('.cu-form').addEventListener('submit', async function(e) {
     e.preventDefault();
-    const btn = document.querySelector('.cu-submit-btn');
-    btn.innerText = "Sent Successfully! ✓";
-    btn.style.background = "#10b981";
-    this.reset();
+    const form = this;
+    const btn = form.querySelector('.cu-submit-btn');
+    const original = btn.innerText;
+    const payload = {
+        name: form.elements.name.value.trim(),
+        email: form.elements.email.value.trim(),
+        message: form.elements.message.value.trim(),
+    };
+
+    btn.disabled = true;
+    btn.innerText = "Sending...";
+    try {
+        const res = await fetch('/contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        btn.innerText = "Sent Successfully! ✓";
+        btn.style.background = "#10b981";
+        form.reset();
+    } catch (err) {
+        console.error("Contact form failed:", err);
+        btn.innerText = "Could not send. Try again";
+        btn.style.background = "#ef4444";
+    }
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.innerText = original;
+        btn.style.background = "";
+    }, 4000);
 });
 
 

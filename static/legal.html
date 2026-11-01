@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vani.ai | Privacy &amp; Terms</title>
+    <link rel="stylesheet" href="/static/css/global.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; }
+        .legal { max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; line-height: 1.7; }
+        .legal a.back { color: #2563eb; text-decoration: none; font-weight: 600; }
+        .legal h1 { font-size: 2rem; margin: 24px 0 4px; }
+        .legal h2 { font-size: 1.35rem; margin-top: 48px; padding-top: 8px; }
+        .legal h3 { font-size: 1.02rem; margin: 22px 0 4px; }
+        .legal p, .legal li { color: #334155; }
+        .legal .muted { color: #64748b; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+<main class="legal">
+    <a class="back" href="/">&larr; Back to Vani.ai</a>
+    <h1>Privacy &amp; Terms</h1>
+    <p class="muted">Vani.ai is a final-year capstone project. This page describes what the software actually does with your data.</p>
+
+    <h2 id="privacy">Privacy Policy</h2>
+
+    <h3>Live audio (host)</h3>
+    <p>When the host presses Start, microphone audio is streamed from the host's browser to the Vani.ai server and on to <a href="https://www.speechmatics.com/" target="_blank" rel="noopener">Speechmatics</a> for speech-to-text. Vani.ai does not record or store the audio.</p>
+
+    <h3>Captions</h3>
+    <p>The text produced from the audio is sent to the host and to everyone who joined the same invite code. To reach viewers on different servers, captions pass through a Redis message channel (Upstash). They are delivered and not stored there.</p>
+
+    <h3>Translation</h3>
+    <p>If a viewer turns on translation, each finished sentence is sent from the viewer's browser to Google Translate.</p>
+
+    <h3>AI summary and Vani Bot</h3>
+    <p>When the host presses Generate Summary, or a viewer asks Vani Bot a question, the transcript so far (and the question) is sent to Google Gemini to produce the answer.</p>
+
+    <h3>Saved transcripts, settings and profile</h3>
+    <p>Save, History, Settings and Profile are stored only in your own browser (localStorage). There are no accounts. Clearing your browser data removes them, and they are not visible to anyone else.</p>
+
+    <h3>Contact form</h3>
+    <p>Messages sent through the contact form (name, email and message) are stored so the team can reply. Only the latest 500 messages are kept.</p>
+
+    <h3>Offline (edge) mode</h3>
+    <p>The offline fallback downloads a Whisper speech model to your browser and transcribes on your own device. In that mode, audio does not leave your device.</p>
+
+    <h2 id="terms">Terms of Service</h2>
+    <ul>
+        <li>Vani.ai is provided as-is for demonstration and educational use, without warranty of any kind.</li>
+        <li>Captions, translations and summaries are generated automatically and can be wrong. Don't rely on them for medical, legal or safety-critical decisions.</li>
+        <li>Only stream audio you have the right to share, and tell the people being recorded that their speech is being transcribed.</li>
+        <li>Don't use the service for confidential conversations. Audio and text are processed by the third-party services listed above.</li>
+        <li>Don't misuse the service, for example by flooding rooms, the contact form or the AI endpoints with automated requests.</li>
+    </ul>
+
+    <p class="muted">Questions? Use the <a href="/#contact-section">contact form</a>.</p>
+</main>
+</body>
+</html>

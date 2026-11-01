@@ -9,6 +9,37 @@ try:
 except ImportError:
     from connection import manager
 
+def join_results(results):
+    """Join Speechmatics result items into text, gluing punctuation to its word.
+
+    Punctuation arrives as separate items ("Hello", "."), so a plain " ".join
+    produced "Hello ." on screen.
+    """
+    text = ""
+    glue_next = False
+    for item in results:
+        alternatives = item.get("alternatives") or [{}]
+        word = alternatives[0].get("content", "")
+        if not word:
+            continue
+        attaches = item.get("attaches_to", "previous") if item.get("type") == "punctuation" else "none"
+        if text and not glue_next and attaches not in ("previous", "both"):
+            text += " "
+        text += word
+        glue_next = attaches in ("next", "both")
+    return text
+
+
+def speaker_label(results):
+    """'S1' -> 'Speaker 1'. Speechmatics puts the label on the alternative, not the item."""
+    for item in results:
+        alternatives = item.get("alternatives") or [{}]
+        raw = alternatives[0].get("speaker") or item.get("speaker")
+        if raw and raw != "UU":
+            return f"Speaker {raw[1:]}" if raw.startswith("S") and raw[1:].isdigit() else raw
+    return "Speaker"
+
+
 class AudioPipeline:
     def __init__(self, source_lang, target_lang, glossary, room="default", manager=None):
         self.source_lang = source_lang
@@ -124,7 +155,7 @@ class AudioPipeline:
                             if message_type == "AddPartialTranscript":
                                 results = data.get("results", [])
                                 if results:
-                                    partial_text = " ".join([r["alternatives"][0]["content"] for r in results])
+                                    partial_text = join_results(results)
                                     payload = {"type": "partial", "original": partial_text}
                                     
                                     # Send to Presenter Screen (NEW LINE)
@@ -137,8 +168,8 @@ class AudioPipeline:
                             elif message_type == "AddTranscript":
                                 results = data.get("results", [])
                                 if results:
-                                    final_text = " ".join([r["alternatives"][0]["content"] for r in results])
-                                    speaker = results[0].get("speaker", "Unknown Speaker")
+                                    final_text = join_results(results)
+                                    speaker = speaker_label(results)
                                     
                                     # ONLY print the final spoken text to the terminal!
                                     print(f"🗣️ [{speaker}]: {final_text}")

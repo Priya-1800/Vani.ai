@@ -24,7 +24,7 @@
         </nav>
 
         <div class="nav-actions">
-            <a href="login.html" class="login-btn">Log in</a>
+            <a href="audience.html" class="login-btn">Join a session</a>
         </div>
     </header>
 
@@ -176,15 +176,15 @@
                 <form class="cu-form">
                     <div class="cu-form-group">
                         <label>Full Name</label>
-                        <input type="text" placeholder="John Doe" required>
+                        <input type="text" name="name" placeholder="John Doe" maxlength="120" required>
                     </div>
                     <div class="cu-form-group">
                         <label>Work Email</label>
-                        <input type="email" placeholder="john@company.com" required>
+                        <input type="email" name="email" placeholder="john@company.com" maxlength="200" required>
                     </div>
                     <div class="cu-form-group">
                         <label>Message</label>
-                        <textarea rows="4" placeholder="Tell us about your project..." required></textarea>
+                        <textarea name="message" rows="4" placeholder="Tell us about your project..." maxlength="4000" required></textarea>
                     </div>
                     <button type="submit" class="cu-submit-btn">Send Message</button>
                 </form>
@@ -214,7 +214,7 @@
                 
                 <div class="au-btn-group">
                     <a href="presenter.html" class="cta-btn au-primary-btn">Start Transcribing</a>
-                    <a href="#features" class="au-secondary-btn">Know More →</a>
+                    <a href="#features-section" class="au-secondary-btn">Know More →</a>
                 </div>
             </div>
 
@@ -234,9 +234,8 @@
                 <div class="member-image">
                     <img src="/static/assets/Priya_Thakur.jpeg" alt="Team Member">
                     <div class="social-overlay">
-                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                        <a href="#"><i class="fab fa-github"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="https://www.linkedin.com/in/priya-thakur-8701a1272" target="_blank" rel="noopener noreferrer" aria-label="Priya Thakur on LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="https://github.com/Priya-1800" target="_blank" rel="noopener noreferrer" aria-label="Priya Thakur on GitHub"><i class="fab fa-github"></i></a>
                     </div>
                 </div>
                 <div class="member-info">
@@ -249,9 +248,7 @@
                 <div class="member-image">
                     <img src="/static/assets/Vaishali_Nikalje.png" alt="Team Member">
                     <div class="social-overlay">
-                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                        <a href="#"><i class="fab fa-github"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <!-- Add this member's profile links here, e.g. <a href="https://www.linkedin.com/in/..." target="_blank" rel="noopener noreferrer"><i class="fab fa-linkedin-in"></i></a> -->
                     </div>
                 </div>
                 <div class="member-info">
@@ -264,9 +261,7 @@
                 <div class="member-image">
                     <img src="/static/assets/Tanmayee_Panat.png" alt="Team Member">
                     <div class="social-overlay">
-                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                        <a href="#"><i class="fab fa-github"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <!-- Add this member's profile links here, e.g. <a href="https://www.linkedin.com/in/..." target="_blank" rel="noopener noreferrer"><i class="fab fa-linkedin-in"></i></a> -->
                     </div>
                 </div>
                 <div class="member-info">
@@ -279,9 +274,7 @@
                 <div class="member-image">
                     <img src="/static/assets/Yash_Pawar.png" alt="Team Member">
                     <div class="social-overlay">
-                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                        <a href="#"><i class="fab fa-github"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <!-- Add this member's profile links here, e.g. <a href="https://www.linkedin.com/in/..." target="_blank" rel="noopener noreferrer"><i class="fab fa-linkedin-in"></i></a> -->
                     </div>
                 </div>
                 <div class="member-info">
@@ -299,9 +292,8 @@
                 <a href="#" class="ft-logo-dark">Vani<span>.ai</span></a>
                 <p>The next generation of edge-driven linguistic intelligence. Processing the world's voices, locally.</p>
                 <div class="ft-social-links">
-                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                    <a href="#"><i class="fab fa-twitter"></i></a>
-                    <a href="#"><i class="fab fa-github"></i></a>
+                    <a href="https://www.linkedin.com/in/priya-thakur-8701a1272" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="https://github.com/Priya-1800/Vani.ai" target="_blank" rel="noopener noreferrer" aria-label="Vani.ai on GitHub"><i class="fab fa-github"></i></a>
                 </div>
             </div>
 
@@ -311,7 +303,7 @@
                     <ul>
                         <li><a href="#features-section">Features</a></li>
                         <li><a href="presenter.html">Live Demo</a></li>
-                        <li><a href="#">API Docs</a></li>
+                        <li><a href="/docs" target="_blank" rel="noopener">API Docs</a></li>
                     </ul>
                 </div>
                 <div class="ft-nav-group">
@@ -328,8 +320,8 @@
         <div class="ft-bottom">
             <p>&copy; 2026 Vani AI. All rights reserved.</p>
             <div class="ft-legal">
-                <a href="#">Privacy Policy</a>
-                <a href="#">Terms of Service</a>
+                <a href="/legal.html#privacy">Privacy Policy</a>
+                <a href="/legal.html#terms">Terms of Service</a>
             </div>
         </div>
     </div>
