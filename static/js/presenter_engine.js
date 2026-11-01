@@ -371,7 +371,7 @@ async function setupAudioPipeline() {
 }
 
 // --- Engine Stop ---
-function stopEngine() {
+function stopEngine(options = {}) {
     hostStopped = true;
     audioStarted = false;
     clearTimeout(reconnectTimer);
@@ -397,8 +397,9 @@ function stopEngine() {
     if(startBtn) startBtn.disabled = false;
     if(stopBtn) stopBtn.disabled = true;
 
-    if (VaniStore.getSettings().autoSave && hasUnsavedChanges()) {
-        saveTranscript({ quiet: true });
+    // Saved holds only transcripts you saved yourself, so remind instead of saving silently.
+    if (!options.unloading && hasUnsavedChanges()) {
+        Vani.toast("Not saved yet. Press Save to keep this transcript.");
     }
 }
 
@@ -431,20 +432,17 @@ function hasUnsavedChanges() {
     return transcriptText.trim() !== '' && (transcriptText + summaryText) !== savedSnapshot;
 }
 
-function saveTranscript(options = {}) {
+function saveTranscript() {
     if (!transcriptText.trim()) {
-        if (!options.quiet) Vani.toast("Nothing to save yet. Press Start and speak first.", 'error');
+        Vani.toast("Nothing to save yet. Press Start and speak first.", 'error');
         return false;
     }
-    // A manual Save clears the "auto-saved" tag; auto-save keeps an earlier manual save untagged.
-    const previous = currentSession ? VaniStore.getSession(currentSession.id) : null;
-    const autoSaved = options.quiet ? (previous ? previous.autoSaved !== false : true) : false;
-    if (!VaniStore.saveSession({ ...buildSession(), autoSaved })) {
+    if (!VaniStore.saveSession(buildSession())) {
         Vani.toast("Could not save: browser storage is full or blocked.", 'error');
         return false;
     }
     savedSnapshot = transcriptText + summaryText;
-    Vani.toast(options.quiet ? "Transcript auto-saved. Find it under Saved." : "Saved. Find it under Saved in the sidebar.", 'success');
+    Vani.toast("Saved. Find it under Saved in the sidebar.", 'success');
     return true;
 }
 
@@ -500,17 +498,9 @@ function openSettings() {
         lang.value = settings.defaultLanguage || pageLang.value;
     }
 
-    const autoWrap = document.createElement('label');
-    autoWrap.className = 'vani-check';
-    const auto = document.createElement('input');
-    auto.type = 'checkbox';
-    auto.checked = settings.autoSave !== false;
-    autoWrap.append(auto, document.createTextNode('Save the transcript automatically when I press Stop'));
-
     form.append(
         field('Glossary', glossary, 'Names and technical words the speech engine should recognise. Separate with commas. Applies the next time you press Start.'),
         field('Default spoken language', lang),
-        autoWrap,
     );
 
     Vani.openModal('Settings', form, [
@@ -518,7 +508,7 @@ function openSettings() {
         {
             label: 'Save settings', kind: 'primary', onClick: close => {
                 const words = glossary.value.split(/[,\n]/).map(w => w.trim()).filter(Boolean).slice(0, 100);
-                VaniStore.saveSettings({ glossary: words, defaultLanguage: lang.value, autoSave: auto.checked });
+                VaniStore.saveSettings({ glossary: words, defaultLanguage: lang.value });
                 if (pageLang && hostStopped) pageLang.value = lang.value;
                 close();
                 Vani.toast('Settings saved.', 'success');
@@ -575,6 +565,7 @@ function renderProfileName() {
 }
 
 function applySavedPreferences() {
+    VaniStore.removeAutoSaved();  // older versions auto-saved on Stop; Saved is manual-only now
     renderProfileName();
     const settings = VaniStore.getSettings();
     const pageLang = document.getElementById('language-select');
@@ -614,8 +605,15 @@ window.saveTranscript = saveTranscript;
 window.newTranscription = newTranscription;
 window.openSettings = openSettings;
 window.openProfile = openProfile;
-// 🛑 Automatically stop the engine and close WebSockets if the user refreshes or closes the tab!
-window.addEventListener('beforeunload', stopEngine);
+// Warn before closing or reloading the tab with a transcript that hasn't been saved.
+window.addEventListener('beforeunload', (event) => {
+    if (hasUnsavedChanges()) {
+        event.preventDefault();
+        event.returnValue = '';
+    }
+});
+// 🛑 Stop the engine and close WebSockets when the page actually goes away.
+window.addEventListener('pagehide', () => stopEngine({ unloading: true }));
 
 // --- GEMINI AI SUMMARY INTEGRATION ---
 
