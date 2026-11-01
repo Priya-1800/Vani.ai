@@ -1,0 +1,262 @@
+/* Phone and small-tablet layout for the app pages (host, client, offline).
+   The desktop layout (side rail + fixed-height window) needs ~900px; below
+   768px the side rail becomes a top bar and toolbars wrap. */
+
+@media (max-width: 768px) {
+
+    /* ---------- Shared shell (host + offline pages) ---------- */
+    .pres-wrapper {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+
+    .pres-sidebar {
+        width: auto;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        border-right: none;
+        border-bottom: 1px solid #e2e8f0;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
+
+    .pres-logo {
+        font-size: 1.3rem;
+        padding-left: 0;
+        flex-shrink: 0;
+    }
+
+    .pres-profile-name {
+        display: none;
+    }
+
+    .sidebar-nav {
+        flex-direction: row;
+        gap: 4px;
+        margin-left: auto;
+    }
+
+    /* Icons only in the top bar; the title attribute keeps the name on hover/long-press. */
+    .sidebar-nav .nav-label {
+        display: none;
+    }
+
+    .nav-item {
+        padding: 10px 12px;
+        gap: 0;
+        font-size: 1.05rem;
+    }
+
+    .pres-main {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .transcription-window {
+        min-height: 70vh;
+    }
+
+    .window-role-title {
+        padding: 10px 14px;
+        display: none;
+        text-align: left;
+    }
+
+    .window-role-title.is-visible {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .role-switch {
+        position: static;
+        transform: none;
+    }
+
+    .window-controls {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .control-group {
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .control-group .lang-dropdown,
+    .control-group select {
+        flex: 1 1 140px;
+        min-width: 0;
+        max-width: none !important;
+    }
+
+    .control-group .btn-start,
+    .control-group .btn-stop {
+        flex: 1 1 100px;
+        justify-content: center;
+    }
+
+    .control-right {
+        justify-content: space-between;
+    }
+
+    .transcript-canvas {
+        padding: 16px;
+        font-size: 1.1rem;
+        line-height: 1.7;
+    }
+
+    .role-panel {
+        padding: 20px 16px;
+        margin: 16px auto;
+    }
+
+    .role-action {
+        padding: 12px 20px;
+    }
+
+    .code-input {
+        font-size: 1.25rem;
+        letter-spacing: 4px;
+    }
+
+    .bottom-actions {
+        padding: 0;
+    }
+
+    .action-buttons {
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .action-buttons > button {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+
+    #reaction-tally.is-visible {
+        width: 100%;
+        justify-content: center;
+    }
+
+    #ai-summary-container {
+        padding: 14px !important;
+    }
+
+    /* ---------- Client page ---------- */
+    .aud-wrapper {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+
+    /* The icon rail becomes a slim bar above the header. */
+    .aud-sidebar {
+        width: auto;
+        flex-direction: row;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 22px;
+        padding: 10px 16px;
+        border-right: none;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .aud-header {
+        padding: 12px 16px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .aud-logo {
+        font-size: 1.35rem;
+    }
+
+    .aud-window {
+        margin: 0 12px 12px;
+    }
+
+    .aud-window > .role-panel {
+        margin-top: 16px;
+    }
+
+    .aud-toolbar {
+        gap: 8px;
+        padding: 10px 0;
+    }
+
+    .aud-toolbar > button {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+
+    .aud-canvas {
+        padding: 16px;
+        padding-bottom: 96px; /* room for the reaction bar */
+        min-height: 55vh;
+    }
+
+    /* Reactions and the bot stay reachable at the bottom of the screen while scrolling. */
+    .reaction-bar {
+        position: fixed;
+        left: 12px;
+        right: 84px;
+        bottom: 14px;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    .reaction-btn {
+        width: 46px;
+        height: 46px;
+        font-size: 1.3rem;
+    }
+
+    .fab-bot {
+        position: fixed;
+        right: 14px;
+        bottom: 12px;
+        width: 54px;
+        height: 54px;
+    }
+
+    /* ---------- Modals and toasts ---------- */
+    .vani-modal-overlay {
+        padding: 10px;
+        align-items: flex-end;
+    }
+
+    .vani-modal {
+        max-height: 90vh;
+    }
+
+    #vani-toasts {
+        left: 12px;
+        right: 12px;
+        bottom: 80px;
+    }
+}
+
+@media (max-width: 360px) {
+    .nav-item {
+        padding: 8px 9px;
+    }
+
+    .reaction-bar {
+        gap: 4px;
+    }
+
+    .reaction-btn {
+        width: 40px;
+        height: 40px;
+    }
+}

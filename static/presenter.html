@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vani AI | Host Dashboard</title>
     <link rel="stylesheet" href="/static/css/global.css">
     <link rel="stylesheet" href="/static/css/layout.css">
     <link rel="stylesheet" href="/static/css/effects.css">
     <link rel="stylesheet" href="/static/css/panels.css">
+    <link rel="stylesheet" href="/static/css/mobile.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 </head>
 <body class="pres-body">
@@ -16,11 +18,10 @@
             <a href="/" class="pres-logo" style="text-decoration: none;" title="Home">Vani<span>.ai</span></a>
             <div id="profile-name" class="pres-profile-name"></div>
             <nav class="sidebar-nav">
-                <a href="#" class="nav-item active" onclick="newTranscription(); return false;"><i class="fas fa-plus"></i> New Transcription</a>
-                <a href="#" class="nav-item" onclick="saveTranscript(); return false;"><i class="fas fa-save"></i> Save</a>
-                <a href="#" class="nav-item" onclick="Vani.openHistory('host'); return false;"><i class="fas fa-history"></i> History</a>
-                <a href="#" class="nav-item" onclick="openSettings(); return false;"><i class="fas fa-cog"></i> Settings</a>
-                <a href="#" class="nav-item" onclick="openProfile(); return false;"><i class="fas fa-user"></i> Profile</a>
+                <a href="#" class="nav-item active" title="New Transcription" onclick="newTranscription(); return false;"><i class="fas fa-plus"></i> <span class="nav-label">New Transcription</span></a>
+                <a href="#" class="nav-item" title="Saved transcripts" onclick="Vani.openHistory('host'); return false;"><i class="fas fa-bookmark"></i> <span class="nav-label">Saved</span></a>
+                <a href="#" class="nav-item" title="Settings" onclick="openSettings(); return false;"><i class="fas fa-cog"></i> <span class="nav-label">Settings</span></a>
+                <a href="#" class="nav-item" title="Profile" onclick="openProfile(); return false;"><i class="fas fa-user"></i> <span class="nav-label">Profile</span></a>
             </nav>
         </aside>
 

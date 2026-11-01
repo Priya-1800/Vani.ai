@@ -195,7 +195,7 @@
                 const p = document.createElement('p');
                 p.className = 'vani-muted';
                 p.textContent = role === 'host'
-                    ? 'No saved transcripts yet. Press Save after a session (or keep auto-save on in Settings).'
+                    ? 'No saved transcripts yet. Press the Save button under the transcript (or keep auto-save on in Settings).'
                     : 'No saved sessions yet. Sessions are saved here automatically when you leave or the host ends the stream.';
                 wrap.appendChild(p);
                 return;
@@ -210,7 +210,7 @@
                 title.textContent = s.room ? `Room ${s.room}` : 'Session';
                 const meta = document.createElement('span');
                 const words = (s.text || '').split(/\s+/).filter(Boolean).length;
-                meta.textContent = `${new Date(s.startedAt || s.savedAt).toLocaleString()} · ${words} words`;
+                meta.textContent = `${new Date(s.startedAt || s.savedAt).toLocaleString()} · ${words} words${s.autoSaved ? ' · auto-saved' : ''}`;
                 const preview = document.createElement('p');
                 preview.textContent = (s.text || '').slice(0, 140) + ((s.text || '').length > 140 ? '…' : '');
                 info.append(title, meta, preview);
@@ -243,13 +243,13 @@
             pre.className = 'vani-transcript-view';
             pre.textContent = formatSession(s);
             openModal(s.room ? `Room ${s.room}` : 'Session', pre, [
-                { label: 'Back', onClick: () => openHistory(role) },
+                { label: 'Back to saved', onClick: () => openHistory(role) },
                 { label: 'Download', kind: 'primary', onClick: () => downloadText(`Vani_${s.room || 'session'}.txt`, formatSession(s)) },
             ]);
         }
 
         render();
-        openModal(role === 'host' ? 'Saved transcripts' : 'My sessions', wrap, [{ label: 'Close', onClick: c => c() }]);
+        openModal(role === 'host' ? 'Saved transcripts' : 'My saved sessions', wrap, [{ label: 'Close', onClick: c => c() }]);
     }
 
     window.VaniStore = VaniStore;
