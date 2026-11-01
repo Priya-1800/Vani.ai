@@ -91,20 +91,26 @@ class ConnectionManager:
                 print(f"⚠️ Dropping dead viewer socket: {e}")
                 self.disconnect(room, connection)
 
-    async def publish_to_host(self, room: str, message: str):
-        """Send an audience message (e.g. a reaction) to the room's presenter, on any instance."""
+    async def publish_to_host(self, room: str, message: str) -> int:
+        """Send an audience message (e.g. a reaction) to the room's presenter, on any instance.
+
+        Returns how many presenter sessions received it (0 = host not live).
+        """
         client = self._client()
         if client:
             try:
-                await client.publish(HOST_PREFIX + room, message)
-                return
+                # PUBLISH returns the number of subscribers, i.e. live host sessions.
+                return int(await client.publish(HOST_PREFIX + room, message))
             except Exception as e:
                 print(f"⚠️ Redis publish to host failed, delivering locally only: {e}")
+        delivered = 0
         for host in list(self.hosts.get(room, ())):
             try:
                 await host.send_text(message)
+                delivered += 1
             except Exception:
                 self.hosts.get(room, set()).discard(host)
+        return delivered
 
     async def host_feed(self, room: str, websocket: WebSocket):
         """Run for the length of a presenter session: deliver audience messages to the host.

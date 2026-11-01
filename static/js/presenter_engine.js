@@ -436,12 +436,15 @@ function saveTranscript(options = {}) {
         if (!options.quiet) Vani.toast("Nothing to save yet. Press Start and speak first.", 'error');
         return false;
     }
-    if (!VaniStore.saveSession(buildSession())) {
+    // A manual Save clears the "auto-saved" tag; auto-save keeps an earlier manual save untagged.
+    const previous = currentSession ? VaniStore.getSession(currentSession.id) : null;
+    const autoSaved = options.quiet ? (previous ? previous.autoSaved !== false : true) : false;
+    if (!VaniStore.saveSession({ ...buildSession(), autoSaved })) {
         Vani.toast("Could not save: browser storage is full or blocked.", 'error');
         return false;
     }
     savedSnapshot = transcriptText + summaryText;
-    Vani.toast(options.quiet ? "Transcript auto-saved to History." : "Saved. Find it under History.", 'success');
+    Vani.toast(options.quiet ? "Transcript auto-saved. Find it under Saved." : "Saved. Find it under Saved in the sidebar.", 'success');
     return true;
 }
 

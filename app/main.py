@@ -190,7 +190,10 @@ async def audience_endpoint(websocket: WebSocket, room: str):
             now = time.monotonic()
             if emoji in ALLOWED_REACTIONS and now - last_reaction >= REACTION_MIN_INTERVAL_S:
                 last_reaction = now
-                await manager.publish_to_host(room, json.dumps({"type": "reaction", "emoji": emoji}))
+                delivered = await manager.publish_to_host(room, json.dumps({"type": "reaction", "emoji": emoji}))
+                if not delivered:
+                    # Let the viewer know instead of silently dropping it.
+                    await websocket.send_text(json.dumps({"type": "reaction_status", "delivered": False}))
     except WebSocketDisconnect:
         pass
     except Exception as e:

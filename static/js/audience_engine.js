@@ -15,6 +15,7 @@ let audienceSession = null;   // { id, startedAt, room }
 let spokenSentences = [];     // original sentences only (bot context)
 let transcriptLines = [];     // sentence + translation, as exported
 let lastReactionSent = 0;
+let lastUndeliveredNotice = 0;
 
 function saveAudienceSession() {
     if (!audienceSession || !transcriptLines.length) return;
@@ -149,6 +150,15 @@ function openAudienceSocket(room) {
         try {
             const data = JSON.parse(event.data);
             
+            // The server tells us when a reaction had no live host to go to.
+            if (data.type === 'reaction_status') {
+                if (!data.delivered && Date.now() - lastUndeliveredNotice > 5000) {
+                    lastUndeliveredNotice = Date.now();
+                    Vani.toast("The host isn't live right now, so your reaction wasn't delivered.");
+                }
+                return;
+            }
+
             // 🛑 Catch the stream ended signal
             if (data.type === 'system' && data.message === 'Stream Ended') {
                 const statusBadge = document.getElementById('status-badge');
