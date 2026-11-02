@@ -2,7 +2,7 @@
 
 Real-time multilingual captioning for talks and meetings. A presenter speaks, the audience sees live text in their own room, and Gemini can turn the transcript into a summary with action items.
 
-Built by Priya Thakur (AI/ML, backend, systems and research) and Vaishali Nikalje (frontend and UI/UX) as a final-year capstone, and presented at ImCReTE 2026 in the paper *“Vani.ai Next Generation Multilingual Streaming Using Websockets and Edge Fallback”*. This repository is the software platform; it is under active development (see the roadmap).
+Built by Priya Thakur (AI/ML, backend, systems and research) and Vaishali Nikalje (frontend and UI/UX) as a final-year capstone, and presented at ImCReTE 2026 in the paper *“Vani.ai Next Generation Multilingual Streaming Using Websockets and Edge Fallback”*. This repository is the software platform; it is under active development.
 
 ## What it does today
 
@@ -80,18 +80,6 @@ Things to know about WebSockets on Vercel:
 | `/ask` | POST | Vani Bot. Body `{"question": "...", "transcript": "..."}` returns `{"answer": "...", "source": ...}` |
 | `/contact` | POST | Landing-page contact form. Body `{"name", "email", "message"}`. Stored in the Redis list `vani:contact` (latest 500); read them in the Upstash console |
 | `/docs` | GET | Interactive API documentation (FastAPI) |
-
-## Roadmap
-
-- [x] Real-time captions with speaker labels, glossary and audience rooms
-- [x] Gemini summary and action items
-- [ ] Phase 0: cleanup, README, pinned dependencies, secured summary endpoint
-- [ ] Phase 1: SQLite persistence for meetings, utterances and summaries
-- [ ] Phase 2: multi-agent analysis with LangGraph (cleaner, summarizer, action items, JA↔EN translator, critic)
-- [ ] Phase 3: question answering over past meetings (FAISS)
-- [ ] Phase 4: evaluation against the single-prompt baseline
-- [ ] Phase 5: Docker, docker-compose and CI
-- [ ] Phase 6: cloud deployment and demo
 
 ## Author
 
